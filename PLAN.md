@@ -1,0 +1,80 @@
+# Work Plan — Kickbase AI Manager
+
+The single source of truth for **what to do next**. The Ralph loop
+([PROMPT.md](PROMPT.md)) reads this file every iteration, works the **topmost
+unchecked task**, then checks it off. Keep tasks small enough to finish in one
+iteration. Add newly discovered work as new checkboxes rather than expanding a task
+mid-flight.
+
+**Legend:** `[ ]` open · `[~]` in progress · `[x]` done · `[!]` blocked (reason noted)
+
+---
+
+## Milestone 0 — Project bootstrap  ✅ (done 2026-08-03, manual)
+
+- [x] Decide repo location, fork strategy, upstream relationship
+- [x] Analyze upstream, persist findings (`docs/upstream-analysis.md`)
+- [x] Write README, NOTICE, LICENSE, CLAUDE.md, ADR-0001
+- [x] Preserve verbatim upstream under `reference/upstream/`
+- [x] Author PLAN.md + PROMPT.md (this plan and the loop driver)
+- [x] `git init` + initial commit
+
+## Milestone 1 — Toolchain & monorepo foundation
+> **Prerequisite (human):** install **Node.js 22 LTS**, then `corepack enable`.
+> Until then, tasks below that build/test are `[!]` blocked.
+
+- [ ] **1.1** Add root `package.json` (private, `packageManager: pnpm@…`), `pnpm-workspace.yaml` covering `packages/*` and `apps/*`
+- [ ] **1.2** Add `tsconfig.base.json` — strict, `noUncheckedIndexedAccess`, `moduleResolution: bundler` or `Node16`, project references ready
+- [ ] **1.3** Add Turborepo (`turbo.json`) with `build`, `test`, `lint`, `typecheck` pipelines
+- [ ] **1.4** Add ESLint (typescript-eslint, flat config) + Prettier + `.eslintignore`; wire `pnpm lint`
+- [ ] **1.5** Add Vitest at root with a trivial passing sanity test; wire `pnpm test`
+- [ ] **1.6** Add `.env.example` documenting `KB_COOKIE`, `LEAGUE_ID`
+- [ ] **1.7** Add GitHub Actions CI: install → typecheck → lint → test → build on push/PR
+- [ ] **1.8** Verify `pnpm install && pnpm build && pnpm test && pnpm lint` all green; commit
+
+## Milestone 2 — `packages/shared`
+- [ ] **2.1** Scaffold package (tsconfig extends base, package.json, src/index.ts)
+- [ ] **2.2** Env schema with zod: parse+validate `KB_COOKIE`, `LEAGUE_ID`; typed accessor; fail fast with a clear message
+- [ ] **2.3** Structured logger (levels; **never logs secrets or full API payloads at info** — fixes upstream finding #4)
+- [ ] **2.4** `Result<T,E>` / typed error primitives for the API layer
+- [ ] **2.5** Unit tests for env parsing (valid/invalid) and Result helpers
+
+## Milestone 3 — `packages/kickbase-api` (hardened client)
+- [ ] **3.1** Scaffold package; depend on `shared`
+- [ ] **3.2** Port `KickbaseApiClient` from `reference/upstream`; **remove `@ts-ignore`** (finding #1)
+- [ ] **3.3** Complete domain types (players, market, squad, market-value) — replace cryptic partial types (finding #7); document each field
+- [ ] **3.4** Robust `makeRequest`: typed errors, timeout, retry w/ backoff, rate-limit awareness, detect expired cookie → actionable error (finding #5)
+- [ ] **3.5** Make league configurable per call/instance, not just process env (removes single-league hard-wire)
+- [ ] **3.6** Unit tests with mocked `fetch` (success, non-2xx, expired cookie, malformed body)
+
+## Milestone 4 — `packages/mcp-server` (parity, hardened)
+- [ ] **4.1** Scaffold package; depend on `kickbase-api`, `shared`
+- [ ] **4.2** Port the 4 tools (player info, list market, my squad, make offer) with clean types, no `@ts-ignore` (finding #1 in server.ts)
+- [ ] **4.3** Implement `makeOffer` **guardrail**: dry-run default, explicit execute flag, confirmation echo of what will happen (finding #6)
+- [ ] **4.4** Port `ToolResponseBuilder`; ensure tool descriptions/docs are complete
+- [ ] **4.5** Wire MCP server entry (`apps/cli` or package bin); document `claude_desktop_config.json` usage in README
+- [ ] **4.6** Tests for tool handlers (service mocked); manual smoke test against Claude Desktop
+- [ ] **4.7** Tag **v0.1.0** — functional parity with upstream, strict/tested/lint-free/guardrailed
+
+## Milestone 5 — First intelligence increment (choose one to start)
+> Pick the highest-value feature package and build it thin end-to-end before widening.
+- [ ] **5.1** `packages/core` domain entities (Player, Squad, MarketListing) decoupled from transport
+- [ ] **5.2** `packages/market`: value-trend + winners/losers analysis over real data; expose as MCP tool
+- [ ] **5.3** `packages/reports`: first Market Report generated from 5.2; expose as MCP tool
+- [ ] **5.4** Document the analysis method so recommendations are traceable (no invented data)
+
+## Backlog / later milestones
+- [ ] Feature packages: `analytics`, `scouting`, `predictions`, `transfers`, `optimizer`, `scheduler`, `notifications`, `ai`
+- [ ] `apps/desktop`
+- [ ] Automated report scheduling
+- [ ] Proactive agent (risk/opportunity detection, watchlist upkeep)
+
+## Standing open decisions (not loop tasks — need maintainer)
+- [ ] Confirm final **license** for the combined work (currently MIT provisional — see NOTICE.md)
+- [ ] Courtesy contact to upstream author (Sepper007) re: fork & attribution
+- [ ] Confirm hosting: public GitHub repo now, or private until v0.1.0?
+
+---
+
+### Change log
+- 2026-08-03 — Plan created; Milestone 0 complete.
