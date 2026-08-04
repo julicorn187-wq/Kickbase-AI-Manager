@@ -1,0 +1,27 @@
+{
+  "name": "@kickbase-ai-manager/mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./build/index.js",
+  "types": "./build/index.d.ts",
+  "bin": {
+    "kickbase-mcp-server": "./build/index.js"
+  },
+  "scripts": {
+    "build": "tsc -b && node -e \"require('fs').chmodSync('build/index.js', 0o755)\"",
+    "typecheck": "tsc -b --emitDeclarationOnly false --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run --config ../../vitest.config.ts"
+  },
+  "dependencies": {
+    "@kickbase-ai-manager/kickbase-api": "workspace:*",
+    "@kickbase-ai-manager/shared": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.18.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "vitest": "^2.1.8"
+  }
+}

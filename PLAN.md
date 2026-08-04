@@ -21,40 +21,42 @@ mid-flight.
 
 ## Milestone 1 — Toolchain & monorepo foundation
 > **Prerequisite (human):** install **Node.js 22 LTS**, then `corepack enable`.
-> Until then, tasks below that build/test are `[!]` blocked.
+> Config below is written but **unverified** — `[!]` blocked on Node install for
+> actual `pnpm install`/build/test execution.
 
-- [ ] **1.1** Add root `package.json` (private, `packageManager: pnpm@…`), `pnpm-workspace.yaml` covering `packages/*` and `apps/*`
-- [ ] **1.2** Add `tsconfig.base.json` — strict, `noUncheckedIndexedAccess`, `moduleResolution: bundler` or `Node16`, project references ready
-- [ ] **1.3** Add Turborepo (`turbo.json`) with `build`, `test`, `lint`, `typecheck` pipelines
-- [ ] **1.4** Add ESLint (typescript-eslint, flat config) + Prettier + `.eslintignore`; wire `pnpm lint`
-- [ ] **1.5** Add Vitest at root with a trivial passing sanity test; wire `pnpm test`
-- [ ] **1.6** Add `.env.example` documenting `KB_COOKIE`, `LEAGUE_ID`
-- [ ] **1.7** Add GitHub Actions CI: install → typecheck → lint → test → build on push/PR
-- [ ] **1.8** Verify `pnpm install && pnpm build && pnpm test && pnpm lint` all green; commit
+- [x] **1.1** Add root `package.json` (private, `packageManager: pnpm@…`), `pnpm-workspace.yaml` covering `packages/*` and `apps/*`
+- [x] **1.2** Add `tsconfig.base.json` — strict, `noUncheckedIndexedAccess`, `Node16` module resolution, project references ready
+- [x] **1.3** Add Turborepo (`turbo.json`) with `build`, `test`, `lint`, `typecheck` pipelines
+- [x] **1.4** Add ESLint (typescript-eslint, flat config) + Prettier; wire `pnpm lint`
+- [x] **1.5** Add Vitest at root with a trivial passing sanity test; wire `pnpm test`
+- [x] **1.6** Add `.env.example` documenting `KB_COOKIE`, `LEAGUE_ID`
+- [x] **1.7** Add GitHub Actions CI: install → typecheck → lint → test → build on push/PR
+- [!] **1.8** Verify `pnpm install && pnpm build && pnpm test && pnpm lint` all green — blocked, no Node on dev machine yet
 
-## Milestone 2 — `packages/shared`
-- [ ] **2.1** Scaffold package (tsconfig extends base, package.json, src/index.ts)
-- [ ] **2.2** Env schema with zod: parse+validate `KB_COOKIE`, `LEAGUE_ID`; typed accessor; fail fast with a clear message
-- [ ] **2.3** Structured logger (levels; **never logs secrets or full API payloads at info** — fixes upstream finding #4)
-- [ ] **2.4** `Result<T,E>` / typed error primitives for the API layer
-- [ ] **2.5** Unit tests for env parsing (valid/invalid) and Result helpers
+## Milestone 2 — `packages/shared`  ✅ (written 2026-08-04, unverified — see 1.8)
+- [x] **2.1** Scaffold package (tsconfig extends base, package.json, src/index.ts)
+- [x] **2.2** Env schema with zod: parse+validate `KB_COOKIE`, `LEAGUE_ID`; typed accessor; fail fast with a clear message
+- [x] **2.3** Structured logger (levels; **never logs secrets or full API payloads at info** — fixes upstream finding #4)
+- [x] **2.4** `Result<T,E>` / typed error primitives for the API layer
+- [x] **2.5** Unit tests for env parsing (valid/invalid) and Result helpers
 
-## Milestone 3 — `packages/kickbase-api` (hardened client)
-- [ ] **3.1** Scaffold package; depend on `shared`
-- [ ] **3.2** Port `KickbaseApiClient` from `reference/upstream`; **remove `@ts-ignore`** (finding #1)
-- [ ] **3.3** Complete domain types (players, market, squad, market-value) — replace cryptic partial types (finding #7); document each field
-- [ ] **3.4** Robust `makeRequest`: typed errors, timeout, retry w/ backoff, rate-limit awareness, detect expired cookie → actionable error (finding #5)
-- [ ] **3.5** Make league configurable per call/instance, not just process env (removes single-league hard-wire)
-- [ ] **3.6** Unit tests with mocked `fetch` (success, non-2xx, expired cookie, malformed body)
+## Milestone 3 — `packages/kickbase-api` (hardened client)  ✅ (written 2026-08-04, unverified — see 1.8)
+- [x] **3.1** Scaffold package; depend on `shared`
+- [x] **3.2** Port `KickbaseApiClient` from `reference/upstream`; **remove `@ts-ignore`** (finding #1)
+- [x] **3.3** Complete domain types (players, market, squad, market-value) — replace cryptic partial types (finding #7); document each field
+- [x] **3.4** Robust `makeRequest`: typed errors, timeout, retry w/ backoff, rate-limit awareness, detect expired cookie → actionable error (finding #5)
+- [x] **3.5** Make league configurable per call/instance, not just process env (removes single-league hard-wire)
+- [x] **3.6** Unit tests with mocked `fetch` (success, non-2xx, expired cookie, malformed body)
 
-## Milestone 4 — `packages/mcp-server` (parity, hardened)
-- [ ] **4.1** Scaffold package; depend on `kickbase-api`, `shared`
-- [ ] **4.2** Port the 4 tools (player info, list market, my squad, make offer) with clean types, no `@ts-ignore` (finding #1 in server.ts)
-- [ ] **4.3** Implement `makeOffer` **guardrail**: dry-run default, explicit execute flag, confirmation echo of what will happen (finding #6)
-- [ ] **4.4** Port `ToolResponseBuilder`; ensure tool descriptions/docs are complete
-- [ ] **4.5** Wire MCP server entry (`apps/cli` or package bin); document `claude_desktop_config.json` usage in README
-- [ ] **4.6** Tests for tool handlers (service mocked); manual smoke test against Claude Desktop
-- [ ] **4.7** Tag **v0.1.0** — functional parity with upstream, strict/tested/lint-free/guardrailed
+## Milestone 4 — `packages/mcp-server` (parity, hardened)  ✅ (written 2026-08-04, unverified — see 1.8)
+- [x] **4.1** Scaffold package; depend on `kickbase-api`, `shared`
+- [x] **4.2** Port the 4 tools (player info, list market, my squad, make offer) with clean types, no `@ts-ignore` (finding #1 in server.ts)
+- [x] **4.3** Implement `makeOffer` **guardrail**: dry-run default, explicit execute flag, confirmation echo of what will happen (finding #6)
+- [x] **4.4** Port `ToolResponseBuilder`; ensure tool descriptions/docs are complete
+- [x] **4.5** Wire MCP server entry (package `bin`); document `claude_desktop_config.json` usage in README
+- [x] **4.6** Tests for tool handlers (service mocked) — written; not yet run (blocked on Node, see 1.8)
+- [ ] **4.6b** Manual smoke test against Claude Desktop — needs Node + a real KB_COOKIE/LEAGUE_ID, do after 1.8
+- [ ] **4.7** Tag **v0.1.0** — after 1.8 and 4.6b are green
 
 ## Milestone 5 — First intelligence increment (choose one to start)
 > Pick the highest-value feature package and build it thin end-to-end before widening.
@@ -78,3 +80,7 @@ mid-flight.
 
 ### Change log
 - 2026-08-03 — Plan created; Milestone 0 complete.
+- 2026-08-04 — Milestones 1–4 written (toolchain config, `shared`, `kickbase-api`,
+  `mcp-server` with 4 tools + `makeOffer` dry-run guardrail). Unverified — no
+  Node.js on the dev machine yet, so `pnpm install`/build/test/lint have not
+  actually been run. Treat as a strong draft, not a green build, until 1.8 runs.

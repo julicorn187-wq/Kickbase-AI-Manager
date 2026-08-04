@@ -1,0 +1,14 @@
+#!/usr/bin/env node
+import { loadEnv } from "@kickbase-ai-manager/shared";
+import { KickbaseMcpServer } from "./server.js";
+
+async function main(): Promise<void> {
+  const env = loadEnv();
+  const server = new KickbaseMcpServer({ cookie: env.KB_COOKIE, leagueId: env.LEAGUE_ID });
+  await server.start();
+}
+
+main().catch((error: unknown) => {
+  console.error("Fatal error in main():", error);
+  process.exit(1);
+});

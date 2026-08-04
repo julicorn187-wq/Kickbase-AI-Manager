@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./build",
+    "rootDir": "./src"
+  },
+  "references": [{ "path": "../kickbase-api" }, { "path": "../shared" }],
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.test.ts", "node_modules", "build"]
+}

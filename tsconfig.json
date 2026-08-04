@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/shared" },
+    { "path": "./packages/kickbase-api" },
+    { "path": "./packages/mcp-server" }
+  ]
+}

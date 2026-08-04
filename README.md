@@ -67,6 +67,41 @@ pnpm build
 pnpm test
 ```
 
+## MCP server & tools
+
+`packages/mcp-server` exposes four tools via the Model Context Protocol, functionally
+at parity with the upstream fork but hardened (strict types, no `@ts-ignore`, typed
+errors, retry/timeout, and a confirmation guardrail on the money-affecting one):
+
+| Tool | Description | Side effects |
+|------|-------------|---------------|
+| `get-kickbase-player-information` | Player performance and market-value data (incl. 1-day/7-day value trend) for a `playerId` | None |
+| `list-kickbase-market` | Players currently listed on the market, soonest-expiring first | None |
+| `get-my-kickbase-squad` | Your current squad with position, points, market value, status | None |
+| `make-kickbase-offer-for-player` | Places an offer on a player at a given price | **Budget-affecting.** Defaults to a dry run that only previews the offer; pass `confirm: true` to actually submit it (see [Guardrails](CLAUDE.md#guardrails-for-side-effecting-actions)) |
+
+### Using it with Claude Desktop
+
+1. Build the server: `pnpm --filter @kickbase-ai-manager/mcp-server build`
+2. Add it to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "kickbase": {
+      "command": "node",
+      "args": ["/absolute/path/to/kickbase-ai-manager/packages/mcp-server/build/index.js"],
+      "env": {
+        "KB_COOKIE": "<your session cookie>",
+        "LEAGUE_ID": "<your league id>"
+      }
+    }
+  }
+}
+```
+
+3. Restart Claude Desktop. The four tools above become available in chat.
+
 ## Disclaimer
 
 Kickbase does **not** provide an official public API. This project talks to
