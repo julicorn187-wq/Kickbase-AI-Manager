@@ -52,11 +52,26 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.1)
 
+  packages/market:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)
+
   packages/mcp-server:
     dependencies:
       '@kickbase-ai-manager/kickbase-api':
         specifier: workspace:*
         version: link:../kickbase-api
+      '@kickbase-ai-manager/market':
+        specifier: workspace:*
+        version: link:../market
       '@kickbase-ai-manager/shared':
         specifier: workspace:*
         version: link:../shared
