@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { BaseXiService } from "./basexi.service.js";
+import type { ForecastService } from "./forecast.service.js";
 import type { KickbaseService } from "./kickbase.service.js";
 import type { MatchupService } from "./matchup.service.js";
 import { createTextResponse } from "./response-builder.js";
@@ -187,6 +188,34 @@ export function registerGetBaseXiPlayerSnapshotTool(server: McpServer, baseXiSer
       inputSchema: { playerName: z.string() },
     },
     async ({ playerName }) => createTextResponse(await baseXiService.getPlayerSnapshot(playerName)),
+  );
+}
+
+/**
+ * Opt-in only, same gate as get-basexi-player-snapshot — see
+ * packages/mcp-server/src/forecast.service.ts and
+ * @kickbase-ai-manager/predictions for the scoring formula.
+ */
+export function registerForecastMatchdayValueLineupTool(server: McpServer, forecastService: ForecastService): void {
+  server.registerTool(
+    "forecast-kickbase-matchday-value-lineup",
+    {
+      title: "Forecast a value-lineup shortlist for the next Bundesliga matchday (opt-in)",
+      description:
+        "Combines BaseXI's real player data (points, price, next-match info) with OpenLigaDB's " +
+        "Bundesliga team form/goal-difference/clean-sheet record into a value-lineup shortlist: " +
+        "a suggested value-XI, bench options, and a top-N-per-position list, each with a fully " +
+        "disclosed rationale (see @kickbase-ai-manager/predictions for the exact scoring " +
+        "formula and its weights). This is a ranking aid, not a points prediction or a " +
+        "guaranteed lineup - it has no knowledge of your actual squad, budget, or confirmed " +
+        "starting lineups (the output reminds you to search LigaInsider for that). Before the " +
+        "season's first matchday, every player falls back to last season's averages and the " +
+        "output says so explicitly. Only available because you explicitly enabled BaseXI " +
+        "(ENABLE_BASEXI=true).",
+      inputSchema: { topPerPosition: z.number().int().positive().max(20).optional() },
+    },
+    async ({ topPerPosition }) =>
+      createTextResponse(await forecastService.getMatchdayValueLineup(topPerPosition)),
   );
 }
 

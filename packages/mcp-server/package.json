@@ -21,6 +21,7 @@
     "@kickbase-ai-manager/kickbase-api": "workspace:*",
     "@kickbase-ai-manager/market": "workspace:*",
     "@kickbase-ai-manager/openligadb": "workspace:*",
+    "@kickbase-ai-manager/predictions": "workspace:*",
     "@kickbase-ai-manager/reports": "workspace:*",
     "@kickbase-ai-manager/shared": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.18.0",

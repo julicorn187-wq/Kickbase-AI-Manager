@@ -13,4 +13,8 @@ export interface TeamMatchInput {
   isFinished: boolean;
   /** Only meaningful when isFinished is true. */
   result?: "W" | "D" | "L";
+  /** Goals scored by this team. Only meaningful when isFinished is true. */
+  goalsFor?: number;
+  /** Goals conceded by this team. Only meaningful when isFinished is true. */
+  goalsAgainst?: number;
 }

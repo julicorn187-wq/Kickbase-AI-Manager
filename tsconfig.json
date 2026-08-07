@@ -9,6 +9,7 @@
     { "path": "./packages/openligadb" },
     { "path": "./packages/fixtures" },
     { "path": "./packages/basexi" },
+    { "path": "./packages/predictions" },
     { "path": "./packages/mcp-server" }
   ]
 }

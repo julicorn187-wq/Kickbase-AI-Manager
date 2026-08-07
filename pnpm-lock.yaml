@@ -124,6 +124,9 @@ importers:
       '@kickbase-ai-manager/openligadb':
         specifier: workspace:*
         version: link:../openligadb
+      '@kickbase-ai-manager/predictions':
+        specifier: workspace:*
+        version: link:../predictions
       '@kickbase-ai-manager/reports':
         specifier: workspace:*
         version: link:../reports
@@ -152,6 +155,18 @@ importers:
       '@kickbase-ai-manager/shared':
         specifier: workspace:*
         version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)
+
+  packages/predictions:
     devDependencies:
       '@types/node':
         specifier: ^22.10.0

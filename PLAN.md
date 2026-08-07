@@ -214,3 +214,26 @@ mid-flight.
   `docs/upstream-analysis.md`/`docs/adr/0001-*`/`reference/upstream/` are left
   untouched — they accurately document what the *upstream* fork's code did, not
   a live setup guide.
+- 2026-08-08 — Added matchday value-lineup forecasting, per the maintainer's
+  request to get standing recommendations for upcoming matchdays (form,
+  starting-XI likelihood via LigaInsider, next-opponent strength, current
+  prices via BaseXI). New `packages/predictions` (pure, disclosed scoring:
+  `parseImpliedProbabilities` from posted odds, `computeMatchupAdjustment`
+  combining home/away + implied win probability + team goal-difference/
+  clean-sheet record — GK/DEF judged on clean-sheet suitability, MID/FWD on
+  scoring suitability — all capped at ±25% and fully explained in a returned
+  `rationale`, and `buildValueLineup`, a greedy formation slot-fill). Extended
+  `packages/fixtures` with `computeGoalStats` (goals for/against, clean
+  sheets) and `packages/basexi`'s types with the real `momentum`/`next_match`
+  fields (discovered via a live inspection of `/api/players`, same precedent
+  as the original BaseXI field modeling). New opt-in tool
+  `forecast-kickbase-matchday-value-lineup` in `mcp-server` (gated behind
+  `ENABLE_BASEXI`, same as `get-basexi-player-snapshot`). BaseXI's `momentum`
+  and `next_match.difficulty` are surfaced as-is, never scored — their scale
+  and methodology aren't documented, so no weight for them would be honest.
+  IMPORTANT caveat discovered while building this: as of 2026-08-08 the
+  2026/27 Bundesliga season has not started yet (matchday 1 is 2026-08-28),
+  so every player's `matchesPlayed` is 0 and there is no current-season form
+  to use — the tool falls back to last season's averages and says so
+  explicitly in its output. Re-verify the forecast's usefulness once real
+  matches start.

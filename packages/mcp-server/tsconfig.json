@@ -11,6 +11,7 @@
     { "path": "../kickbase-api" },
     { "path": "../market" },
     { "path": "../openligadb" },
+    { "path": "../predictions" },
     { "path": "../reports" },
     { "path": "../shared" }
   ],

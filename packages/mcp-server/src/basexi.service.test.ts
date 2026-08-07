@@ -19,7 +19,10 @@ function player(overrides: Partial<BaseXiPlayer> = {}): BaseXiPlayer {
     statusText: null,
     isHot: false,
     matchesPlayed: 0,
+    gamesPrevSeason: 31,
+    momentum: "dark_green",
     match_data: { home_game: true, next_opponent: "VfB Stuttgart", odds: "- | - | -" },
+    next_match: null,
     ...overrides,
   };
 }

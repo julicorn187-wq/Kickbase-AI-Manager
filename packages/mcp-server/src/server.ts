@@ -5,12 +5,14 @@ import { KickbaseApiClient } from "@kickbase-ai-manager/kickbase-api";
 import { OpenLigaDbClient } from "@kickbase-ai-manager/openligadb";
 import { createLogger, type Logger } from "@kickbase-ai-manager/shared";
 import { BaseXiService } from "./basexi.service.js";
+import { ForecastService } from "./forecast.service.js";
 import { KickbaseService } from "./kickbase.service.js";
 import { MatchupService } from "./matchup.service.js";
 import {
   registerAnalyzePlayerMatchupTool,
   registerAnalyzePlayerValueTool,
   registerAnalyzeTeamMatchupTool,
+  registerForecastMatchdayValueLineupTool,
   registerGetBaseXiPlayerSnapshotTool,
   registerGetLeagueRankingTool,
   registerGetMySquadTool,
@@ -51,25 +53,29 @@ export class KickbaseMcpServer {
       logger: this.logger,
     });
     const kickbaseService = new KickbaseService(apiClient);
-    const matchupService = new MatchupService(new OpenLigaDbClient({ logger: this.logger }));
-    const baseXiService = options.enableBaseXi
-      ? new BaseXiService(new BaseXiClient({ logger: this.logger }))
-      : undefined;
+    const openLigaClient = new OpenLigaDbClient({ logger: this.logger });
+    const matchupService = new MatchupService(openLigaClient);
 
+    let baseXiService: BaseXiService | undefined;
+    let forecastService: ForecastService | undefined;
     if (options.enableBaseXi) {
       this.logger.warn(
         "BaseXI integration enabled (ENABLE_BASEXI=true) — base-xi.de's robots.txt disallows " +
           "automated /api/ access; this is a deliberate, informed opt-in, not a default.",
       );
+      const baseXiClient = new BaseXiClient({ logger: this.logger });
+      baseXiService = new BaseXiService(baseXiClient);
+      forecastService = new ForecastService(baseXiClient, openLigaClient);
     }
 
-    this.registerTools(kickbaseService, matchupService, baseXiService);
+    this.registerTools(kickbaseService, matchupService, baseXiService, forecastService);
   }
 
   private registerTools(
     kickbaseService: KickbaseService,
     matchupService: MatchupService,
     baseXiService: BaseXiService | undefined,
+    forecastService: ForecastService | undefined,
   ): void {
     registerGetPlayerInfoTool(this.server, kickbaseService);
     registerListMarketTool(this.server, kickbaseService);
@@ -83,6 +89,9 @@ export class KickbaseMcpServer {
     registerAnalyzePlayerMatchupTool(this.server, kickbaseService, matchupService);
     if (baseXiService) {
       registerGetBaseXiPlayerSnapshotTool(this.server, baseXiService);
+    }
+    if (forecastService) {
+      registerForecastMatchdayValueLineupTool(this.server, forecastService);
     }
   }
 

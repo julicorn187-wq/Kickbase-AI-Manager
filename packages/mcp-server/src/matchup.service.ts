@@ -161,6 +161,16 @@ export class MatchupService {
   }
 }
 
+/** All unique teams appearing in a season's match list (each team plays both home and away, so team1+team2 covers everyone). */
+export function collectSeasonTeams(matches: OpenLigaMatch[]): OpenLigaTeam[] {
+  const seen = new Map<number, OpenLigaTeam>();
+  for (const match of matches) {
+    seen.set(match.team1.teamId, match.team1);
+    seen.set(match.team2.teamId, match.team2);
+  }
+  return [...seen.values()];
+}
+
 function findTeam(matches: OpenLigaMatch[], candidate: string): OpenLigaTeam | undefined {
   for (const match of matches) {
     if (matchesTeam(match.team1, candidate)) return match.team1;
@@ -177,7 +187,7 @@ function matchesTeam(team: OpenLigaTeam, candidate: string | OpenLigaTeam): bool
   return name.includes(c) || short.includes(c) || c.includes(short);
 }
 
-function toTeamMatchInputs(matches: OpenLigaMatch[], team: OpenLigaTeam, competition: string): TeamMatchInput[] {
+export function toTeamMatchInputs(matches: OpenLigaMatch[], team: OpenLigaTeam, competition: string): TeamMatchInput[] {
   return matches
     .filter((m) => matchesTeam(m.team1, team) || matchesTeam(m.team2, team))
     .map((m) => {
@@ -190,17 +200,26 @@ function toTeamMatchInputs(matches: OpenLigaMatch[], team: OpenLigaTeam, competi
         competition,
         isFinished: m.matchIsFinished,
       };
-      const result = m.matchIsFinished ? deriveResult(m, isHome) : undefined;
-      return result === undefined ? base : { ...base, result };
+      if (!m.matchIsFinished) return base;
+
+      const goals = deriveGoals(m, isHome);
+      if (!goals) return base;
+
+      return { ...base, result: deriveResult(goals), goalsFor: goals.goalsFor, goalsAgainst: goals.goalsAgainst };
     });
 }
 
-function deriveResult(match: OpenLigaMatch, isHome: boolean): "W" | "D" | "L" | undefined {
+function deriveGoals(match: OpenLigaMatch, isHome: boolean): { goalsFor: number; goalsAgainst: number } | undefined {
   const final = match.matchResults.at(-1);
   if (!final) return undefined;
-  const ownScore = isHome ? final.pointsTeam1 : final.pointsTeam2;
-  const opponentScore = isHome ? final.pointsTeam2 : final.pointsTeam1;
-  if (ownScore > opponentScore) return "W";
-  if (ownScore < opponentScore) return "L";
+  return {
+    goalsFor: isHome ? final.pointsTeam1 : final.pointsTeam2,
+    goalsAgainst: isHome ? final.pointsTeam2 : final.pointsTeam1,
+  };
+}
+
+function deriveResult(goals: { goalsFor: number; goalsAgainst: number }): "W" | "D" | "L" {
+  if (goals.goalsFor > goals.goalsAgainst) return "W";
+  if (goals.goalsFor < goals.goalsAgainst) return "L";
   return "D";
 }
