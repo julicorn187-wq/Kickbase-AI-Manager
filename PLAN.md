@@ -122,6 +122,27 @@ mid-flight.
   every item is either done or explicitly, reasoned-out deferred (5.1 only).
 
 ## Backlog / later milestones
+- [x] Research real Kickbase game mechanics and smart-manager strategy, ground the assistant's
+  advice in it — done 2026-08-07, see [docs/kickbase-mechanics.md](docs/kickbase-mechanics.md).
+  Found and cited **official** Kickbase documentation (help.kickbase.com) for market-value update
+  cadence (once daily, ~22:00 CET, supply/demand across all users) and transfer-market bidding
+  rules (sealed bids, ties go to earliest, **bids below market value are sometimes rejected
+  outright**) — confirmed facts, not reverse-engineering. Cross-checked several independent
+  strategy-tip sources plus a community "trading advisor" tool for consistent, if unofficial,
+  manager heuristics (cut declining players early — already matches this project's
+  `decliningPlayers` flag; park idle budget in cheap speculative buys; a rival's remaining budget
+  shapes how aggressively they can bid). Applied the confirmed facts directly:
+  `make-kickbase-offer-for-player`'s dry-run preview now warns about the below-market-value
+  rejection risk, and `analyze-kickbase-player-value`'s description cites the confirmed update
+  cadence instead of treating "1-day trend" as an assumption.
+- [ ] Idle-budget nudge (park unused budget in cheap speculative buys) — needs
+  `KickbaseApiClient` support for `/v4/leagues/{leagueId}/me/budget`, not built yet
+- [ ] Rival-manager budget estimator from the league activity feed — the most concrete "smart
+  manager" edge found in research, via a community tool that infers opponents' budgets from
+  `/v4/leagues/{leagueId}/activitiesFeed` plus the per-matchday points-to-money reward formula.
+  Neither the activity-feed field names nor the reward formula are verified against real data yet
+  — needs the same live-verification treatment as the league ranking endpoint before building on
+  it. Real KB_COOKIE/LEAGUE_ID access (maintainer-provided, local `.env` only) would unblock this.
 - [x] Auto-resolve a Kickbase player to its OpenLigaDB team — done 2026-08-07 as
   `analyze-kickbase-player-matchup(playerId)`. Solved without ever needing to confirm Kickbase's
   `tn` field format: `KickbaseService.getPlayerTeamName` returns it as-is (whatever it is) and

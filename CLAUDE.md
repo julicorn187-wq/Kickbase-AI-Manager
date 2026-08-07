@@ -13,6 +13,8 @@ is stated explicitly.
 - **Vision & scope:** [README.md](README.md)
 - **Architecture & tooling decisions:** [docs/adr/0001-architecture-and-tooling.md](docs/adr/0001-architecture-and-tooling.md)
 - **Upstream analysis (why the fork needs hardening):** [docs/upstream-analysis.md](docs/upstream-analysis.md)
+- **Game mechanics & smart-manager principles:** [docs/kickbase-mechanics.md](docs/kickbase-mechanics.md) —
+  read this before writing or changing any buy/sell/timing-related recommendation logic.
 - **What to work on next:** [PLAN.md](PLAN.md)
 - **Autonomous loop driver:** [PROMPT.md](PROMPT.md)
 - **Provenance / license:** [NOTICE.md](NOTICE.md)

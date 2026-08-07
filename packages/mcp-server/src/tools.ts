@@ -93,7 +93,8 @@ export function registerAnalyzePlayerValueTool(
         "sell is). Pass consideredPrice to get an explicit BUY / TOO EXPENSIVE verdict for a " +
         "specific price, e.g. one seen on the market. This is a transparent heuristic based " +
         "on market-value momentum only, not a guarantee — see the tool output for the exact " +
-        "trend and adjustment used.",
+        "trend and adjustment used. Market value updates once daily around 22:00 CET (Kickbase-" +
+        "confirmed, see docs/kickbase-mechanics.md), which is what the trend is measured over.",
       inputSchema: { playerId: z.string(), consideredPrice: z.number().positive().optional() },
     },
     async ({ playerId, consideredPrice }) =>
@@ -193,7 +194,10 @@ export function registerMakeOfferTool(server: McpServer, kickbaseService: Kickba
       if (!confirm) {
         return createTextResponse(
           `DRY RUN — no offer submitted. This would place an offer of ${price} on player ` +
-            `${playerId}. To actually submit this offer, call this tool again with confirm: true.`,
+            `${playerId}. To actually submit this offer, call this tool again with confirm: true. ` +
+            "Note: Kickbase's transfer market sometimes rejects bids below the player's current " +
+            "market value outright (see docs/kickbase-mechanics.md) — check analyze-kickbase-" +
+            "player-value first if this price is a guess.",
         );
       }
 
