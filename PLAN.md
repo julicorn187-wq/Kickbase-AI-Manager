@@ -77,9 +77,32 @@ mid-flight.
   buy-up-to / sell-from price, plus an explicit BUY / TOO EXPENSIVE verdict for a given price).
   Unit-tested (normal, capped, negative, zero-value-guard cases). Winners/losers-across-the-market
   analysis is not built yet — this is the per-player half of 5.2, not the full scope.
-- [ ] **5.3** `packages/reports`: first Market Report generated from 5.2; expose as MCP tool
+- [x] **5.2a** LigaInsider integration — done 2026-08-07, as a search-query helper
+  (`buildLigaInsiderSearchQuery` in `packages/shared`), not a scraper. LigaInsider profile URLs
+  embed a site-internal id unrelated to the Kickbase player id, and the site has no documented
+  search endpoint, so a constructed direct link risked pointing at the wrong player. Wired into
+  `analyze-kickbase-player-value`'s output; documented as the pattern for future recommendation
+  tools in CLAUDE.md.
+- [x] **5.2b** `packages/analytics` squad valuation — done 2026-08-07. `evaluateSquad` aggregates
+  total value, value gain/loss since acquisition, points, and a per-position breakdown, plus a
+  list of players with a non-default `status`/`matchdayStatus` code. Deliberately does not claim
+  those codes mean "injured" etc. — cross-checking a differently-keyed community API client
+  (`firstName`/`marketValue` style, not this API's `fn`/`mv` style) turned up a plausible enum,
+  but it comes from what looks like a different Kickbase API generation, so it is not trusted
+  here; codes are surfaced raw. Exposed as `get-kickbase-squad-valuation`.
+- [!] **5.2c** Matchup/fixture analysis — blocked, not started. The community OpenAPI catalog
+  confirms `/v4/competitions/{competitionId}/matchdays` and the team-profile endpoint exist, but
+  neither has a captured example response anywhere I could find, and the most actively maintained
+  community client typed the matchday response as `any` — i.e. nobody has reliably documented its
+  fields. Building this would mean inventing field names, which this project's own rules forbid.
+  Unblocks if a maintainer supplies `KB_COOKIE`/`LEAGUE_ID` (via local `.env`, never pasted into
+  chat) so the real response can be inspected, or if better community docs surface.
+- [ ] **5.3** `packages/reports`: first report bundling 5.2/5.2a/5.2b output into one readable
+  recommendation; expose as MCP tool
 - [~] **5.4** Document the analysis method so recommendations are traceable (no invented data) —
-  done for the fair-value heuristic (doc comments + PLAN entry above); extend as 5.3 lands.
+  done for the fair-value heuristic and squad valuation (doc comments + PLAN entries above); the
+  5.2c entry above is this same discipline applied to a *decision not to build* something;
+  extend as 5.3 lands.
 
 ## Backlog / later milestones
 - [ ] Feature packages: `analytics`, `scouting`, `predictions`, `transfers`, `optimizer`, `scheduler`, `notifications`, `ai`

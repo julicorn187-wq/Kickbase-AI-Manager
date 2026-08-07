@@ -5,6 +5,7 @@ import {
   registerGetLeagueRankingTool,
   registerGetMySquadTool,
   registerGetPlayerInfoTool,
+  registerGetSquadValuationTool,
   registerListMarketTool,
   registerMakeOfferTool,
 } from "./tools.js";
@@ -23,6 +24,7 @@ function mockService(overrides: Partial<KickbaseService> = {}): KickbaseService 
     getMySquad: vi.fn(),
     getLeagueRanking: vi.fn(),
     getPlayerValueAnalysis: vi.fn(),
+    getSquadValuation: vi.fn(),
     makeOffer: vi.fn(),
     ...overrides,
   } as unknown as KickbaseService;
@@ -98,6 +100,19 @@ describe("registerGetLeagueRankingTool", () => {
     await handler({});
 
     expect(getLeagueRanking).toHaveBeenCalledWith(undefined);
+  });
+});
+
+describe("registerGetSquadValuationTool", () => {
+  it("returns the service's formatted valuation text", async () => {
+    const getSquadValuation = vi.fn().mockResolvedValue("Squad valuation (2 players): ...");
+    const service = mockService({ getSquadValuation });
+    const handler = captureHandler(registerGetSquadValuationTool, service);
+
+    const result = await handler({});
+
+    expect(getSquadValuation).toHaveBeenCalled();
+    expect(result.content[0].text).toContain("Squad valuation");
   });
 });
 

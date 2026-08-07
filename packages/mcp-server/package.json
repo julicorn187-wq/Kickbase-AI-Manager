@@ -15,6 +15,7 @@
     "test": "vitest run --config ../../vitest.config.ts"
   },
   "dependencies": {
+    "@kickbase-ai-manager/analytics": "workspace:*",
     "@kickbase-ai-manager/kickbase-api": "workspace:*",
     "@kickbase-ai-manager/market": "workspace:*",
     "@kickbase-ai-manager/shared": "workspace:*",

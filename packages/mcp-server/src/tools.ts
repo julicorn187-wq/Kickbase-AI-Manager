@@ -40,6 +40,22 @@ export function registerGetMySquadTool(server: McpServer, kickbaseService: Kickb
   );
 }
 
+export function registerGetSquadValuationTool(server: McpServer, kickbaseService: KickbaseService): void {
+  server.registerTool(
+    "get-kickbase-squad-valuation",
+    {
+      title: "Get a valuation summary of my Kickbase squad",
+      description:
+        "Aggregates the squad into total market value, value gain/loss since acquisition, " +
+        "points, a per-position breakdown, and a list of players with a non-default status " +
+        "code worth a manual look. Status codes are shown raw (their exact meaning is not " +
+        "confirmed for this API), not interpreted as e.g. 'injured'.",
+      inputSchema: {},
+    },
+    async () => createTextResponse(await kickbaseService.getSquadValuation()),
+  );
+}
+
 /**
  * Read-only analysis tool: estimates a fair value for a player from their
  * current market value and 7-day trend, and states up to what price a buy

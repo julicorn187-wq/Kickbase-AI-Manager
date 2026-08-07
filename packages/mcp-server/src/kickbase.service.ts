@@ -1,5 +1,6 @@
 import type { KickbaseApiClient, LeagueRankingUser } from "@kickbase-ai-manager/kickbase-api";
 import { PLAYER_POSITION } from "@kickbase-ai-manager/kickbase-api";
+import { evaluateSquad } from "@kickbase-ai-manager/analytics";
 import { computeMarketValueTrends, estimateFairValue } from "@kickbase-ai-manager/market";
 import { buildLigaInsiderSearchQuery } from "@kickbase-ai-manager/shared";
 
@@ -78,6 +79,61 @@ export class KickbaseService {
       .join("\n");
 
     return `My Squad (${data.it.length} players):\n${squadText}\n\nMax players per team: ${data.mppu}`;
+  }
+
+  /**
+   * Aggregates the squad into totals, a per-position breakdown, and a list
+   * of players with a non-default status code. See
+   * packages/analytics/src/squad-valuation.ts — status/matchdayStatus are
+   * surfaced as raw codes, not interpreted as "injured" etc., because their
+   * exact meaning isn't confirmed for this API.
+   */
+  async getSquadValuation(): Promise<string> {
+    const data = await this.apiClient.getMySquad();
+
+    if (data.it.length === 0) {
+      return "Your squad is currently empty.";
+    }
+
+    const valuation = evaluateSquad(
+      data.it.map((player) => ({
+        id: player.i,
+        name: player.n,
+        marketValue: player.mv,
+        marketValueGainLoss: player.mvgl,
+        points: player.p,
+        averagePoints: player.ap,
+        position: player.pos,
+        status: player.st,
+        matchdayStatus: player.mdst,
+      })),
+    );
+
+    const lines = [
+      `Squad valuation (${valuation.playerCount} players):`,
+      `Total market value: ${valuation.totalMarketValue}`,
+      `Total value gain/loss since acquisition: ${valuation.totalMarketValueGainLoss >= 0 ? "+" : ""}${valuation.totalMarketValueGainLoss}`,
+      `Total points: ${valuation.totalPoints} (avg ${valuation.averagePointsPerPlayer.toFixed(1)} per player)`,
+      "",
+      "By position:",
+      ...valuation.positionBreakdown.map(
+        (entry) =>
+          `  ${this.getPositionName(entry.position)}: ${entry.playerCount} players, ${entry.totalMarketValue} total value`,
+      ),
+    ];
+
+    if (valuation.playersNeedingAttention.length > 0) {
+      lines.push(
+        "",
+        "Players with a non-default status code (meaning not confirmed for this API — check the " +
+          "Kickbase app for details):",
+        ...valuation.playersNeedingAttention.map(
+          (entry) => `  ${entry.name}: status=${entry.status}, matchdayStatus=${entry.matchdayStatus}`,
+        ),
+      );
+    }
+
+    return lines.join("\n");
   }
 
   async makeOffer(playerId: string, price: number): Promise<void> {

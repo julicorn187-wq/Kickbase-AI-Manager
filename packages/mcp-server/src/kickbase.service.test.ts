@@ -97,6 +97,73 @@ describe("KickbaseService", () => {
     expect(text).toContain("Max players per team: 3");
   });
 
+  it("returns a friendly message for squad valuation when the squad is empty", async () => {
+    const apiClient = mockApiClient({ getMySquad: vi.fn().mockResolvedValue({ it: [], mppu: 3 }) });
+    const service = new KickbaseService(apiClient);
+
+    expect(await service.getSquadValuation()).toMatch(/squad is currently empty/i);
+  });
+
+  it("aggregates squad valuation totals, position breakdown, and attention list", async () => {
+    const apiClient = mockApiClient({
+      getMySquad: vi.fn().mockResolvedValue({
+        it: [
+          {
+            ap: 5,
+            i: "1",
+            iotm: false,
+            lo: 0,
+            lst: 0,
+            mdst: 0,
+            mv: 1_000_000,
+            mvgl: 50_000,
+            mvt: 0,
+            n: "Fit Player",
+            ofc: 0,
+            p: 40,
+            pos: 4,
+            sdmvt: 0,
+            st: 0,
+            tfhmvt: 0,
+            tid: "team-1",
+          },
+          {
+            ap: 3,
+            i: "2",
+            iotm: false,
+            lo: 0,
+            lst: 0,
+            mdst: 0,
+            mv: 500_000,
+            mvgl: -10_000,
+            mvt: 0,
+            n: "Hurt Player",
+            ofc: 0,
+            p: 20,
+            pos: 2,
+            sdmvt: 0,
+            st: 1,
+            tfhmvt: 0,
+            tid: "team-2",
+          },
+        ],
+        mppu: 3,
+      }),
+    });
+    const service = new KickbaseService(apiClient);
+
+    const text = await service.getSquadValuation();
+
+    expect(text).toContain("Squad valuation (2 players)");
+    expect(text).toContain("Total market value: 1500000");
+    expect(text).toContain("Total value gain/loss since acquisition: +40000");
+    expect(text).toContain("Total points: 60 (avg 30.0 per player)");
+    expect(text).toContain("ATT: 1 players, 1000000 total value");
+    expect(text).toContain("DEF: 1 players, 500000 total value");
+    expect(text).toContain("Hurt Player: status=1, matchdayStatus=0");
+    expect(text).not.toContain("Fit Player: status");
+  });
+
   it("estimates a fair value and states a buy-up-to price", async () => {
     const apiClient = mockApiClient({
       getPlayerData: vi.fn().mockResolvedValue({
