@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "tsc -b && node -e \"require('fs').chmodSync('build/index.js', 0o755)\"",
-    "typecheck": "tsc -b --emitDeclarationOnly false --noEmit",
+    "typecheck": "tsc -b",
     "lint": "eslint src",
     "test": "vitest run --config ../../vitest.config.ts"
   },
@@ -21,6 +21,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/node": "^22.10.0",
     "typescript": "^5.9.2",
     "vitest": "^2.1.8"
   }

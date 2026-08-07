@@ -7,7 +7,7 @@
   "types": "./build/index.d.ts",
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b --emitDeclarationOnly false --noEmit",
+    "typecheck": "tsc -b",
     "lint": "eslint src",
     "test": "vitest run --config ../../vitest.config.ts"
   },
@@ -15,6 +15,7 @@
     "@kickbase-ai-manager/shared": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^22.10.0",
     "typescript": "^5.9.2",
     "vitest": "^2.1.8"
   }
