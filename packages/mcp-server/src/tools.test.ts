@@ -4,6 +4,7 @@ import {
   registerAnalyzePlayerMatchupTool,
   registerAnalyzePlayerValueTool,
   registerAnalyzeTeamMatchupTool,
+  registerGetBaseXiPlayerSnapshotTool,
   registerGetLeagueRankingTool,
   registerGetMySquadTool,
   registerGetPlayerInfoTool,
@@ -14,6 +15,7 @@ import {
 } from "./tools.js";
 import type { KickbaseService } from "./kickbase.service.js";
 import type { MatchupService } from "./matchup.service.js";
+import type { BaseXiService } from "./basexi.service.js";
 
 interface TextResult {
   content: [{ type: "text"; text: string }];
@@ -95,6 +97,26 @@ function mockMatchupService(overrides: Partial<MatchupService> = {}): MatchupSer
     ...overrides,
   } as unknown as MatchupService;
 }
+
+function mockBaseXiService(overrides: Partial<BaseXiService> = {}): BaseXiService {
+  return {
+    getPlayerSnapshot: vi.fn(),
+    ...overrides,
+  } as unknown as BaseXiService;
+}
+
+describe("registerGetBaseXiPlayerSnapshotTool", () => {
+  it("passes playerName through and returns the formatted snapshot", async () => {
+    const getPlayerSnapshot = vi.fn().mockResolvedValue("Harry Kane (Sturm, FC Bayern München) ...");
+    const service = mockBaseXiService({ getPlayerSnapshot });
+    const handler = captureHandler(registerGetBaseXiPlayerSnapshotTool, service);
+
+    const result = await handler({ playerName: "Kane" });
+
+    expect(getPlayerSnapshot).toHaveBeenCalledWith("Kane");
+    expect(result.content[0].text).toContain("Harry Kane");
+  });
+});
 
 describe("registerAnalyzeTeamMatchupTool", () => {
   it("passes teamName through and returns the formatted analysis", async () => {

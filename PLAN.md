@@ -150,10 +150,25 @@ mid-flight.
   full/short team name, which was already built to tolerate exactly this kind of format
   uncertainty. `analyze-kickbase-team-matchup(teamName)` stays available for manual/exploratory
   use (e.g. scouting a club you don't own a player from yet).
+- [x] `packages/basexi` — done 2026-08-07, **opt-in only, off by default**. During a season-long
+  backtest exercise the maintainer pointed at [base-xi.de](https://www.base-xi.de/), a free
+  community site that mirrors real Kickbase data (market value, position, points, status) via its
+  own `/api/players` endpoint, no login required. Verified live: confirmed real positions for 20
+  test players (100% match against this project's knowledge-based guesses). However, **base-xi.de's
+  own robots.txt disallows automated `/api/` access** — confirmed by inspection. Since this repo is
+  open source, baking in an always-on client would mean every clone of the repo automatically
+  violates that disallow, not just the maintainer's own personal use. Resolved as an explicit,
+  informed opt-in: `ENABLE_BASEXI=true` gates construction of `BaseXiClient`/`BaseXiService`/the
+  `get-basexi-player-snapshot` tool entirely — unset (the default), none of it is ever
+  instantiated or called. See CLAUDE.md's "External data sources" section. The response also
+  includes a betting-odds field (`match_data.odds`) — unpopulated pre-season in testing, so 5.2c's
+  odds backlog item below isn't resolved by this, just possibly easier once odds are actually
+  posted and someone verifies the format live.
 - [ ] `packages/core` domain entities — see 5.1's deferral note; revisit once a second package
   needs to share domain types with `market`/`analytics`
 - [ ] Betting-odds signal for matchup analysis — needs a registered (free-tier) odds API key from
-  the maintainer, see 5.2c
+  the maintainer, see 5.2c (or possibly BaseXI's `match_data.odds` field, once verified live during
+  the season and if the maintainer keeps `ENABLE_BASEXI` on)
 - [ ] Squad-wide matchup sweep (loop `analyze-kickbase-player-matchup` over every squad player in
   one call) — not built; each call already costs 2 extra requests (player data + fixtures), so
   doing this for a full squad from one tool call needs a batching/caching decision first

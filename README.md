@@ -77,10 +77,10 @@ pnpm test
 
 ## MCP server & tools
 
-`packages/mcp-server` exposes ten tools via the Model Context Protocol. The four
-ported from the upstream fork are hardened (strict types, no `@ts-ignore`, typed
-errors, retry/timeout, and a confirmation guardrail on the money-affecting one);
-the rest are new:
+`packages/mcp-server` exposes ten tools by default (an eleventh is opt-in) via the
+Model Context Protocol. The four ported from the upstream fork are hardened (strict
+types, no `@ts-ignore`, typed errors, retry/timeout, and a confirmation guardrail
+on the money-affecting one); the rest are new:
 
 | Tool | Description | Side effects |
 |------|-------------|---------------|
@@ -94,6 +94,7 @@ the rest are new:
 | `analyze-kickbase-team-matchup` | A club's recent form (last 5 results), next 3 Bundesliga fixtures, and fixture-congestion detection (2+/3+ matches within 7 days across Bundesliga/DFB-Pokal/European competitions) — rotation/injury risk context for a player from that club. Sourced from [OpenLigaDB](https://www.openligadb.de/), not Kickbase's API | None |
 | `analyze-kickbase-player-matchup` | Same as `analyze-kickbase-team-matchup`, but takes a `playerId` and resolves the player's real club automatically (via Kickbase's own team-name field) instead of requiring you to already know/pass the club name | None |
 | `make-kickbase-offer-for-player` | Places an offer on a player at a given price | **Budget-affecting.** Defaults to a dry run that only previews the offer; pass `confirm: true` to actually submit it (see [Guardrails](CLAUDE.md#guardrails-for-side-effecting-actions)) |
+| `get-basexi-player-snapshot` *(opt-in)* | Real current Kickbase market value, position, points, and status for a player, from [base-xi.de](https://www.base-xi.de/), an unofficial community mirror. **Disabled by default** — base-xi.de's own robots.txt disallows automated `/api/` access, so this only runs if you set `ENABLE_BASEXI=true` yourself. See CLAUDE.md's "External data sources" section before enabling it | None |
 
 ### Using it with Claude Desktop
 

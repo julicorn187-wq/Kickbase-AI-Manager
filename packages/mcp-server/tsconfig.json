@@ -6,6 +6,7 @@
   },
   "references": [
     { "path": "../analytics" },
+    { "path": "../basexi" },
     { "path": "../fixtures" },
     { "path": "../kickbase-api" },
     { "path": "../market" },

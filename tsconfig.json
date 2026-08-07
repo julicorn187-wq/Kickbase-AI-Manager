@@ -8,6 +8,7 @@
     { "path": "./packages/reports" },
     { "path": "./packages/openligadb" },
     { "path": "./packages/fixtures" },
+    { "path": "./packages/basexi" },
     { "path": "./packages/mcp-server" }
   ]
 }

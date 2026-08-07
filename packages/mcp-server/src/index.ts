@@ -4,7 +4,11 @@ import { KickbaseMcpServer } from "./server.js";
 
 async function main(): Promise<void> {
   const env = loadEnv();
-  const server = new KickbaseMcpServer({ cookie: env.KB_COOKIE, leagueId: env.LEAGUE_ID });
+  const server = new KickbaseMcpServer({
+    cookie: env.KB_COOKIE,
+    leagueId: env.LEAGUE_ID,
+    enableBaseXi: env.ENABLE_BASEXI,
+  });
   await server.start();
 }
 

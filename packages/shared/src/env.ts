@@ -3,6 +3,16 @@ import { z } from "zod";
 const envSchema = z.object({
   KB_COOKIE: z.string().min(1, "KB_COOKIE is required (Kickbase session cookie)"),
   LEAGUE_ID: z.string().min(1, "LEAGUE_ID is required (Kickbase league id)"),
+  /**
+   * Opt-in for the BaseXI integration (packages/basexi). Off by default: BaseXI's
+   * /api/ path is disallowed by its own robots.txt, so this project never calls it
+   * unless a maintainer explicitly turns it on for their own personal use — see
+   * CLAUDE.md's "External data sources" section before setting this to "true".
+   */
+  ENABLE_BASEXI: z
+    .string()
+    .optional()
+    .transform((v) => v === "true"),
 });
 
 export type Env = z.infer<typeof envSchema>;

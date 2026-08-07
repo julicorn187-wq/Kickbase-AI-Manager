@@ -1,14 +1,17 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { BaseXiClient } from "@kickbase-ai-manager/basexi";
 import { KickbaseApiClient } from "@kickbase-ai-manager/kickbase-api";
 import { OpenLigaDbClient } from "@kickbase-ai-manager/openligadb";
 import { createLogger, type Logger } from "@kickbase-ai-manager/shared";
+import { BaseXiService } from "./basexi.service.js";
 import { KickbaseService } from "./kickbase.service.js";
 import { MatchupService } from "./matchup.service.js";
 import {
   registerAnalyzePlayerMatchupTool,
   registerAnalyzePlayerValueTool,
   registerAnalyzeTeamMatchupTool,
+  registerGetBaseXiPlayerSnapshotTool,
   registerGetLeagueRankingTool,
   registerGetMySquadTool,
   registerGetPlayerInfoTool,
@@ -22,6 +25,13 @@ export interface KickbaseMcpServerOptions {
   cookie: string;
   leagueId: string;
   logger?: Logger;
+  /**
+   * Opt-in for the BaseXI integration (packages/basexi). Off by default — see
+   * CLAUDE.md's "External data sources" section: base-xi.de's own robots.txt
+   * disallows /api/, so this is never enabled unless a maintainer explicitly
+   * opts in for their own personal use via the ENABLE_BASEXI env var.
+   */
+  enableBaseXi?: boolean;
 }
 
 export class KickbaseMcpServer {
@@ -42,11 +52,25 @@ export class KickbaseMcpServer {
     });
     const kickbaseService = new KickbaseService(apiClient);
     const matchupService = new MatchupService(new OpenLigaDbClient({ logger: this.logger }));
+    const baseXiService = options.enableBaseXi
+      ? new BaseXiService(new BaseXiClient({ logger: this.logger }))
+      : undefined;
 
-    this.registerTools(kickbaseService, matchupService);
+    if (options.enableBaseXi) {
+      this.logger.warn(
+        "BaseXI integration enabled (ENABLE_BASEXI=true) — base-xi.de's robots.txt disallows " +
+          "automated /api/ access; this is a deliberate, informed opt-in, not a default.",
+      );
+    }
+
+    this.registerTools(kickbaseService, matchupService, baseXiService);
   }
 
-  private registerTools(kickbaseService: KickbaseService, matchupService: MatchupService): void {
+  private registerTools(
+    kickbaseService: KickbaseService,
+    matchupService: MatchupService,
+    baseXiService: BaseXiService | undefined,
+  ): void {
     registerGetPlayerInfoTool(this.server, kickbaseService);
     registerListMarketTool(this.server, kickbaseService);
     registerMakeOfferTool(this.server, kickbaseService);
@@ -57,6 +81,9 @@ export class KickbaseMcpServer {
     registerGetSquadReportTool(this.server, kickbaseService);
     registerAnalyzeTeamMatchupTool(this.server, matchupService);
     registerAnalyzePlayerMatchupTool(this.server, kickbaseService, matchupService);
+    if (baseXiService) {
+      registerGetBaseXiPlayerSnapshotTool(this.server, baseXiService);
+    }
   }
 
   async start(): Promise<void> {

@@ -68,9 +68,19 @@ scraping a website:
   ([openligadb.de](https://www.openligadb.de/)) — free, no key, Swagger-documented.
   `packages/fixtures` holds the analysis on top (form curve, fixture congestion).
 - **News (injuries, lineups, market-value sentiment):** LigaInsider, via a search
-  query, not a scraper — see the section below.
+  query, not a scraper — see the section above.
+- **Real Kickbase market value/position/points (opt-in only):** `packages/basexi`
+  ([base-xi.de](https://www.base-xi.de/)) mirrors real Kickbase data via its own
+  `/api/players` endpoint — but **base-xi.de's own robots.txt disallows automated
+  access to `/api/`**. This project therefore never calls it by default. The
+  `BaseXiClient`/`BaseXiService`/`get-basexi-player-snapshot` tool are only ever
+  constructed when `ENABLE_BASEXI=true` is set (see packages/shared/src/env.ts,
+  packages/mcp-server/src/server.ts) — a maintainer's explicit, informed opt-in
+  for their own personal use, not a default data source. Do not remove that gate,
+  do not call `BaseXiClient` from any other code path, and do not add further
+  BaseXI-backed tools to the default registration list.
 
-## LigaInsider (external news)
+## Repository conventions
 
 - `reference/upstream/` is **read-only** — the verbatim fork, migrated piece by piece.
   Do not edit it in place.

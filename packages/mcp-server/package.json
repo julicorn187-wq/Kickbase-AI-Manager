@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@kickbase-ai-manager/analytics": "workspace:*",
+    "@kickbase-ai-manager/basexi": "workspace:*",
     "@kickbase-ai-manager/fixtures": "workspace:*",
     "@kickbase-ai-manager/kickbase-api": "workspace:*",
     "@kickbase-ai-manager/market": "workspace:*",

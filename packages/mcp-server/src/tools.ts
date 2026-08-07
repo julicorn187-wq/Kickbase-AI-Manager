@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { BaseXiService } from "./basexi.service.js";
 import type { KickbaseService } from "./kickbase.service.js";
 import type { MatchupService } from "./matchup.service.js";
 import { createTextResponse } from "./response-builder.js";
@@ -166,6 +167,26 @@ export function registerAnalyzePlayerMatchupTool(
       const teamName = await kickbaseService.getPlayerTeamName(playerId);
       return createTextResponse(await matchupService.getTeamMatchupAnalysis(teamName));
     },
+  );
+}
+
+/**
+ * Opt-in only — see packages/basexi/src/client.ts. Only ever registered when
+ * ENABLE_BASEXI=true; never present in the default tool set.
+ */
+export function registerGetBaseXiPlayerSnapshotTool(server: McpServer, baseXiService: BaseXiService): void {
+  server.registerTool(
+    "get-basexi-player-snapshot",
+    {
+      title: "Get a player's real market value and status from BaseXI (opt-in)",
+      description:
+        "Real current Kickbase market value, position, points, and status for a player, from " +
+        "BaseXI (base-xi.de), an unofficial community mirror of Kickbase data. Only available " +
+        "because you explicitly enabled it (ENABLE_BASEXI=true) - see CLAUDE.md for why this is " +
+        "opt-in rather than a default data source.",
+      inputSchema: { playerName: z.string() },
+    },
+    async ({ playerName }) => createTextResponse(await baseXiService.getPlayerSnapshot(playerName)),
   );
 }
 

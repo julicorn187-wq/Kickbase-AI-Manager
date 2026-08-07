@@ -2,9 +2,14 @@ import { describe, expect, it } from "vitest";
 import { EnvValidationError, loadEnv } from "./env.js";
 
 describe("loadEnv", () => {
-  it("parses a valid environment", () => {
+  it("parses a valid environment, defaulting ENABLE_BASEXI to false", () => {
     const env = loadEnv({ KB_COOKIE: "session-abc", LEAGUE_ID: "12345" });
-    expect(env).toEqual({ KB_COOKIE: "session-abc", LEAGUE_ID: "12345" });
+    expect(env).toEqual({ KB_COOKIE: "session-abc", LEAGUE_ID: "12345", ENABLE_BASEXI: false });
+  });
+
+  it("only enables BaseXI when ENABLE_BASEXI is exactly the string 'true'", () => {
+    expect(loadEnv({ KB_COOKIE: "c", LEAGUE_ID: "1", ENABLE_BASEXI: "true" }).ENABLE_BASEXI).toBe(true);
+    expect(loadEnv({ KB_COOKIE: "c", LEAGUE_ID: "1", ENABLE_BASEXI: "yes" }).ENABLE_BASEXI).toBe(false);
   });
 
   it("throws EnvValidationError with actionable messages when KB_COOKIE is missing", () => {
