@@ -4,10 +4,10 @@ import { KickbaseApiClient } from "@kickbase-ai-manager/kickbase-api";
 import { createLogger, type Logger } from "@kickbase-ai-manager/shared";
 import { KickbaseService } from "./kickbase.service.js";
 import {
-  createGetMySquadTool,
-  createGetPlayerInfoTool,
-  createListMarketTool,
-  createMakeOfferTool,
+  registerGetMySquadTool,
+  registerGetPlayerInfoTool,
+  registerListMarketTool,
+  registerMakeOfferTool,
 } from "./tools.js";
 
 export interface KickbaseMcpServerOptions {
@@ -22,11 +22,10 @@ export class KickbaseMcpServer {
 
   constructor(options: KickbaseMcpServerOptions) {
     this.logger = options.logger ?? createLogger();
-    this.server = new McpServer({
-      name: "kickbase-mcp",
-      version: "0.1.0",
-      capabilities: { resources: {}, tools: {} },
-    });
+    this.server = new McpServer(
+      { name: "kickbase-mcp", version: "0.1.0" },
+      { capabilities: { resources: {}, tools: {} } },
+    );
 
     const apiClient = new KickbaseApiClient({
       cookie: options.cookie,
@@ -39,16 +38,10 @@ export class KickbaseMcpServer {
   }
 
   private registerTools(kickbaseService: KickbaseService): void {
-    const tools = [
-      createGetPlayerInfoTool(kickbaseService),
-      createListMarketTool(kickbaseService),
-      createMakeOfferTool(kickbaseService),
-      createGetMySquadTool(kickbaseService),
-    ];
-
-    for (const tool of tools) {
-      this.server.registerTool(tool.name, tool.config, tool.handler);
-    }
+    registerGetPlayerInfoTool(this.server, kickbaseService);
+    registerListMarketTool(this.server, kickbaseService);
+    registerMakeOfferTool(this.server, kickbaseService);
+    registerGetMySquadTool(this.server, kickbaseService);
   }
 
   async start(): Promise<void> {

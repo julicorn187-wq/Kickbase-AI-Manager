@@ -1,63 +1,43 @@
 import { z } from "zod";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { KickbaseService } from "./kickbase.service.js";
-import { ToolResponseBuilder, type ToolTextResponse } from "./response-builder.js";
+import { createTextResponse } from "./response-builder.js";
 
-interface ToolDefinition<TInput> {
-  name: string;
-  config: {
-    title: string;
-    description: string;
-    inputSchema: Record<string, z.ZodTypeAny>;
-  };
-  handler: (input: TInput) => Promise<ToolTextResponse>;
-}
-
-export function createGetPlayerInfoTool(
-  kickbaseService: KickbaseService,
-): ToolDefinition<{ playerId: string }> {
-  return {
-    name: "get-kickbase-player-information",
-    config: {
+export function registerGetPlayerInfoTool(server: McpServer, kickbaseService: KickbaseService): void {
+  server.registerTool(
+    "get-kickbase-player-information",
+    {
       title: "Get information about a kickbase player based on their id",
       description:
         "Get information, such as performance and market value data about a player based on playerId",
       inputSchema: { playerId: z.string() },
     },
-    handler: async ({ playerId }) => {
-      const text = await kickbaseService.getPlayerInformation(playerId);
-      return ToolResponseBuilder.createTextResponse(text);
-    },
-  };
+    async ({ playerId }) => createTextResponse(await kickbaseService.getPlayerInformation(playerId)),
+  );
 }
 
-export function createListMarketTool(kickbaseService: KickbaseService): ToolDefinition<object> {
-  return {
-    name: "list-kickbase-market",
-    config: {
+export function registerListMarketTool(server: McpServer, kickbaseService: KickbaseService): void {
+  server.registerTool(
+    "list-kickbase-market",
+    {
       title: "List players that are currently on the kickbase market",
       description: "Returns players that are currently listed on the kickbase market and can be bought",
       inputSchema: {},
     },
-    handler: async () => {
-      const playersFound = await kickbaseService.getMarketPlayers();
-      return ToolResponseBuilder.createTextResponse(playersFound);
-    },
-  };
+    async () => createTextResponse(await kickbaseService.getMarketPlayers()),
+  );
 }
 
-export function createGetMySquadTool(kickbaseService: KickbaseService): ToolDefinition<object> {
-  return {
-    name: "get-my-kickbase-squad",
-    config: {
+export function registerGetMySquadTool(server: McpServer, kickbaseService: KickbaseService): void {
+  server.registerTool(
+    "get-my-kickbase-squad",
+    {
       title: "Get my current Kickbase squad",
       description: "Returns all players currently in my squad/team",
       inputSchema: {},
     },
-    handler: async () => {
-      const squad = await kickbaseService.getMySquad();
-      return ToolResponseBuilder.createTextResponse(squad);
-    },
-  };
+    async () => createTextResponse(await kickbaseService.getMySquad()),
+  );
 }
 
 /**
@@ -66,12 +46,10 @@ export function createGetMySquadTool(kickbaseService: KickbaseService): ToolDefi
  * transaction only executes when the caller explicitly passes confirm: true.
  * This is the fix for upstream finding #6 (no confirmation before spending money).
  */
-export function createMakeOfferTool(
-  kickbaseService: KickbaseService,
-): ToolDefinition<{ playerId: string; price: number; confirm?: boolean }> {
-  return {
-    name: "make-kickbase-offer-for-player",
-    config: {
+export function registerMakeOfferTool(server: McpServer, kickbaseService: KickbaseService): void {
+  server.registerTool(
+    "make-kickbase-offer-for-player",
+    {
       title: "Make an offer in kickbase for a given player",
       description:
         "Prepares (and, only with confirm: true, submits) an offer for a player at a given " +
@@ -83,18 +61,16 @@ export function createMakeOfferTool(
         confirm: z.boolean().optional(),
       },
     },
-    handler: async ({ playerId, price, confirm }) => {
+    async ({ playerId, price, confirm }) => {
       if (!confirm) {
-        return ToolResponseBuilder.createTextResponse(
+        return createTextResponse(
           `DRY RUN — no offer submitted. This would place an offer of ${price} on player ` +
             `${playerId}. To actually submit this offer, call this tool again with confirm: true.`,
         );
       }
 
       await kickbaseService.makeOffer(playerId, price);
-      return ToolResponseBuilder.createTextResponse(
-        `Offer of ${price} for player ${playerId} was submitted successfully.`,
-      );
+      return createTextResponse(`Offer of ${price} for player ${playerId} was submitted successfully.`);
     },
-  };
+  );
 }

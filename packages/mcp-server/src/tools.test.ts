@@ -1,11 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
-  createGetMySquadTool,
-  createGetPlayerInfoTool,
-  createListMarketTool,
-  createMakeOfferTool,
+  registerGetMySquadTool,
+  registerGetPlayerInfoTool,
+  registerListMarketTool,
+  registerMakeOfferTool,
 } from "./tools.js";
 import type { KickbaseService } from "./kickbase.service.js";
+
+interface TextResult {
+  content: [{ type: "text"; text: string }];
+}
+
+type Handler = (input: Record<string, unknown>) => Promise<TextResult>;
 
 function mockService(overrides: Partial<KickbaseService> = {}): KickbaseService {
   return {
@@ -17,73 +24,88 @@ function mockService(overrides: Partial<KickbaseService> = {}): KickbaseService 
   } as unknown as KickbaseService;
 }
 
-describe("createGetPlayerInfoTool", () => {
+function captureHandler(register: (server: McpServer, service: KickbaseService) => void, service: KickbaseService): Handler {
+  let captured: Handler | undefined;
+  const serverStub = {
+    registerTool: (_name: string, _config: unknown, handler: Handler) => {
+      captured = handler;
+    },
+  } as unknown as McpServer;
+
+  register(serverStub, service);
+  if (!captured) throw new Error("registerTool was not called");
+  return captured;
+}
+
+describe("registerGetPlayerInfoTool", () => {
   it("returns the service's formatted text", async () => {
-    const service = mockService({
-      getPlayerInformation: vi.fn().mockResolvedValue("player summary"),
-    });
-    const tool = createGetPlayerInfoTool(service);
+    const getPlayerInformation = vi.fn().mockResolvedValue("player summary");
+    const service = mockService({ getPlayerInformation });
+    const handler = captureHandler(registerGetPlayerInfoTool, service);
 
-    const result = await tool.handler({ playerId: "42" });
+    const result = await handler({ playerId: "42" });
 
-    expect(service.getPlayerInformation).toHaveBeenCalledWith("42");
+    expect(getPlayerInformation).toHaveBeenCalledWith("42");
     expect(result.content[0].text).toBe("player summary");
   });
 });
 
-describe("createListMarketTool", () => {
+describe("registerListMarketTool", () => {
   it("returns the market listing text", async () => {
     const service = mockService({
       getMarketPlayers: vi.fn().mockResolvedValue("market listing"),
     });
-    const tool = createListMarketTool(service);
+    const handler = captureHandler(registerListMarketTool, service);
 
-    const result = await tool.handler({});
+    const result = await handler({});
 
     expect(result.content[0].text).toBe("market listing");
   });
 });
 
-describe("createGetMySquadTool", () => {
+describe("registerGetMySquadTool", () => {
   it("returns the squad text", async () => {
     const service = mockService({ getMySquad: vi.fn().mockResolvedValue("squad text") });
-    const tool = createGetMySquadTool(service);
+    const handler = captureHandler(registerGetMySquadTool, service);
 
-    const result = await tool.handler({});
+    const result = await handler({});
 
     expect(result.content[0].text).toBe("squad text");
   });
 });
 
-describe("createMakeOfferTool", () => {
+describe("registerMakeOfferTool", () => {
   it("does NOT call the service and returns a dry-run preview when confirm is omitted", async () => {
-    const service = mockService();
-    const tool = createMakeOfferTool(service);
+    const makeOffer = vi.fn();
+    const service = mockService({ makeOffer });
+    const handler = captureHandler(registerMakeOfferTool, service);
 
-    const result = await tool.handler({ playerId: "7", price: 1000 });
+    const result = await handler({ playerId: "7", price: 1000 });
 
-    expect(service.makeOffer).not.toHaveBeenCalled();
+    expect(makeOffer).not.toHaveBeenCalled();
     expect(result.content[0].text).toContain("DRY RUN");
     expect(result.content[0].text).toContain("7");
     expect(result.content[0].text).toContain("1000");
   });
 
   it("does NOT call the service when confirm is explicitly false", async () => {
-    const service = mockService();
-    const tool = createMakeOfferTool(service);
+    const makeOffer = vi.fn();
+    const service = mockService({ makeOffer });
+    const handler = captureHandler(registerMakeOfferTool, service);
 
-    await tool.handler({ playerId: "7", price: 1000, confirm: false });
+    await handler({ playerId: "7", price: 1000, confirm: false });
 
-    expect(service.makeOffer).not.toHaveBeenCalled();
+    expect(makeOffer).not.toHaveBeenCalled();
   });
 
   it("calls the service and confirms execution only when confirm is true", async () => {
-    const service = mockService();
-    const tool = createMakeOfferTool(service);
+    const makeOffer = vi.fn();
+    const service = mockService({ makeOffer });
+    const handler = captureHandler(registerMakeOfferTool, service);
 
-    const result = await tool.handler({ playerId: "7", price: 1000, confirm: true });
+    const result = await handler({ playerId: "7", price: 1000, confirm: true });
 
-    expect(service.makeOffer).toHaveBeenCalledWith("7", 1000);
+    expect(makeOffer).toHaveBeenCalledWith("7", 1000);
     expect(result.content[0].text).toContain("submitted successfully");
   });
 });
