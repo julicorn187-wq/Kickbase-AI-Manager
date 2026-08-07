@@ -2,9 +2,7 @@ export type LogLevel = "debug" | "info" | "warn" | "error";
 
 const LEVEL_ORDER: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 };
 
-export interface LogFields {
-  [key: string]: unknown;
-}
+export type LogFields = Record<string, unknown>;
 
 export interface Logger {
   debug(message: string, fields?: LogFields): void;
@@ -36,7 +34,11 @@ export interface CreateLoggerOptions {
 
 export function createLogger(options: CreateLoggerOptions = {}): Logger {
   const minLevel = options.minLevel ?? "info";
-  const sink = options.sink ?? ((line: string) => console.log(line));
+  const sink =
+    options.sink ??
+    ((line: string) => {
+      console.log(line);
+    });
 
   function write(level: LogLevel, message: string, fields?: LogFields): void {
     if (LEVEL_ORDER[level] < LEVEL_ORDER[minLevel]) return;
@@ -50,9 +52,17 @@ export function createLogger(options: CreateLoggerOptions = {}): Logger {
   }
 
   return {
-    debug: (message, fields) => write("debug", message, fields),
-    info: (message, fields) => write("info", message, fields),
-    warn: (message, fields) => write("warn", message, fields),
-    error: (message, fields) => write("error", message, fields),
+    debug: (message, fields) => {
+      write("debug", message, fields);
+    },
+    info: (message, fields) => {
+      write("info", message, fields);
+    },
+    warn: (message, fields) => {
+      write("warn", message, fields);
+    },
+    error: (message, fields) => {
+      write("error", message, fields);
+    },
   };
 }

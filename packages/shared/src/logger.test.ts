@@ -9,10 +9,12 @@ describe("createLogger", () => {
     logger.info("hello", { foo: "bar" });
 
     expect(lines).toHaveLength(1);
-    const entry = JSON.parse(lines[0] as string) as Record<string, unknown>;
-    expect(entry["level"]).toBe("info");
-    expect(entry["message"]).toBe("hello");
-    expect(entry["foo"]).toBe("bar");
+    const [line] = lines;
+    if (!line) throw new Error("expected a log line");
+    const entry = JSON.parse(line) as Record<string, unknown>;
+    expect(entry.level).toBe("info");
+    expect(entry.message).toBe("hello");
+    expect(entry.foo).toBe("bar");
   });
 
   it("redacts cookie/token/password fields regardless of case", () => {
@@ -21,10 +23,12 @@ describe("createLogger", () => {
 
     logger.info("request made", { KB_COOKIE: "super-secret", token: "abc", ok: true });
 
-    const entry = JSON.parse(lines[0] as string) as Record<string, unknown>;
-    expect(entry["KB_COOKIE"]).toBe("[REDACTED]");
-    expect(entry["token"]).toBe("[REDACTED]");
-    expect(entry["ok"]).toBe(true);
+    const [line] = lines;
+    if (!line) throw new Error("expected a log line");
+    const entry = JSON.parse(line) as Record<string, unknown>;
+    expect(entry.KB_COOKIE).toBe("[REDACTED]");
+    expect(entry.token).toBe("[REDACTED]");
+    expect(entry.ok).toBe(true);
   });
 
   it("suppresses levels below minLevel", () => {

@@ -19,7 +19,7 @@ describe("Result helpers", () => {
   });
 
   it("unwrap() throws the error for a failed result", () => {
-    const result: Result<never, Error> = err(new Error("failure"));
+    const result: Result<never> = err(new Error("failure"));
     expect(() => unwrap(result)).toThrow("failure");
   });
 

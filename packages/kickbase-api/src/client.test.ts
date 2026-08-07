@@ -21,7 +21,7 @@ function client(fetchImpl: typeof fetch, overrides: Partial<{ maxRetries: number
 
 describe("KickbaseApiClient", () => {
   it("returns parsed JSON on success and sends the cookie header", async () => {
-    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+    const fetchMock = vi.fn((_url: string, init?: RequestInit) => {
       const headers = init?.headers as Record<string, string>;
       expect(headers.Cookie).toBe("test-cookie");
       return jsonResponse({ it: [] });
@@ -33,8 +33,8 @@ describe("KickbaseApiClient", () => {
   });
 
   it("scopes requests to the configured league id in the URL", async () => {
-    const fetchMock = vi.fn(async (url: string | URL | Request) => {
-      expect(String(url)).toContain("/leagues/league-1/squad");
+    const fetchMock = vi.fn((url: string) => {
+      expect(url).toContain("/leagues/league-1/squad");
       return jsonResponse({ it: [], mppu: 3 });
     });
 
@@ -42,7 +42,7 @@ describe("KickbaseApiClient", () => {
   });
 
   it("throws KickbaseAuthError on 401 without retrying", async () => {
-    const fetchMock = vi.fn(async () => jsonResponse({ error: "unauthorized" }, 401));
+    const fetchMock = vi.fn(() => jsonResponse({ error: "unauthorized" }, 401));
 
     await expect(
       client(fetchMock as unknown as typeof fetch, { maxRetries: 2 }).getMySquad(),
@@ -51,7 +51,7 @@ describe("KickbaseApiClient", () => {
   });
 
   it("throws for a non-2xx, non-auth status without retries configured", async () => {
-    const fetchMock = vi.fn(async () => jsonResponse({ error: "boom" }, 500));
+    const fetchMock = vi.fn(() => jsonResponse({ error: "boom" }, 500));
 
     await expect(client(fetchMock as unknown as typeof fetch).getMarketPlayers()).rejects.toThrow(
       /status 500/,
@@ -60,7 +60,7 @@ describe("KickbaseApiClient", () => {
 
   it("retries transient 5xx errors and succeeds on a later attempt", async () => {
     let calls = 0;
-    const fetchMock = vi.fn(async () => {
+    const fetchMock = vi.fn(() => {
       calls++;
       if (calls < 3) return jsonResponse({ error: "unavailable" }, 503);
       return jsonResponse({ it: [] });
@@ -75,7 +75,7 @@ describe("KickbaseApiClient", () => {
   });
 
   it("wraps a malformed JSON body in KickbaseParseError", async () => {
-    const fetchMock = vi.fn(async () => new Response("not json", { status: 200 }));
+    const fetchMock = vi.fn(() => new Response("not json", { status: 200 }));
 
     await expect(client(fetchMock as unknown as typeof fetch).getMarketPlayers()).rejects.toThrow(
       KickbaseParseError,
@@ -83,7 +83,7 @@ describe("KickbaseApiClient", () => {
   });
 
   it("wraps a persistent network failure in KickbaseNetworkError", async () => {
-    const fetchMock = vi.fn(async () => {
+    const fetchMock = vi.fn(() => {
       throw new TypeError("fetch failed");
     });
 

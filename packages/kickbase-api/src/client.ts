@@ -56,12 +56,17 @@ export class KickbaseApiClient {
     this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
   }
 
-  private async makeRequest<T>(endpoint: string, init: RequestInit = {}): Promise<T> {
+  private async makeRequest<T>(
+    endpoint: string,
+    init: Omit<RequestInit, "headers"> & { headers?: Record<string, string> } = {},
+  ): Promise<T> {
     let lastError: unknown;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+      const timeout = setTimeout(() => {
+        controller.abort();
+      }, this.timeoutMs);
 
       try {
         const response = await this.fetchImpl(`${this.baseUrl}${endpoint}`, {

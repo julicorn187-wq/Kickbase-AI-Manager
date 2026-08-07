@@ -97,11 +97,12 @@ describe("KickbaseService", () => {
   });
 
   it("delegates makeOffer to the api client", async () => {
-    const apiClient = mockApiClient();
+    const makeOffer = vi.fn();
+    const apiClient = mockApiClient({ makeOffer });
     const service = new KickbaseService(apiClient);
 
     await service.makeOffer("1", 500);
 
-    expect(apiClient.makeOffer).toHaveBeenCalledWith("1", 500);
+    expect(makeOffer).toHaveBeenCalledWith("1", 500);
   });
 });
