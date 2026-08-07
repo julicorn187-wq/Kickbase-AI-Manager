@@ -62,6 +62,23 @@ describe("KickbaseService", () => {
     expect(text).toContain("7-day market value trend: 30");
   });
 
+  it("returns the player's team name for handing off to matchup analysis", async () => {
+    const apiClient = mockApiClient({
+      getPlayerData: vi.fn().mockResolvedValue({
+        fn: "Max",
+        ln: "Muster",
+        tn: "FC Bayern München",
+        mv: 500,
+        tp: 100,
+        ap: 5,
+        ph: [],
+      }),
+    });
+    const service = new KickbaseService(apiClient);
+
+    expect(await service.getPlayerTeamName("1")).toBe("FC Bayern München");
+  });
+
   it("formats squad players with resolved position names", async () => {
     const apiClient = mockApiClient({
       getMySquad: vi.fn().mockResolvedValue({

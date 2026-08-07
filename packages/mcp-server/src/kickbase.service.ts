@@ -63,6 +63,17 @@ export class KickbaseService {
     );
   }
 
+  /**
+   * The player's real-world club name (Kickbase's `tn` field), for handing
+   * off to MatchupService without needing to know that field's exact
+   * format in advance — MatchupService matches it loosely against
+   * OpenLigaDB's team names.
+   */
+  async getPlayerTeamName(playerId: string): Promise<string> {
+    const playerData = await this.apiClient.getPlayerData(playerId);
+    return playerData.tn;
+  }
+
   async getMySquad(): Promise<string> {
     const data = await this.apiClient.getMySquad();
 

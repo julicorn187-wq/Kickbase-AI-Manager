@@ -122,13 +122,20 @@ mid-flight.
   every item is either done or explicitly, reasoned-out deferred (5.1 only).
 
 ## Backlog / later milestones
+- [x] Auto-resolve a Kickbase player to its OpenLigaDB team — done 2026-08-07 as
+  `analyze-kickbase-player-matchup(playerId)`. Solved without ever needing to confirm Kickbase's
+  `tn` field format: `KickbaseService.getPlayerTeamName` returns it as-is (whatever it is) and
+  hands it straight to `MatchupService`'s existing loose contains-match against OpenLigaDB's
+  full/short team name, which was already built to tolerate exactly this kind of format
+  uncertainty. `analyze-kickbase-team-matchup(teamName)` stays available for manual/exploratory
+  use (e.g. scouting a club you don't own a player from yet).
 - [ ] `packages/core` domain entities — see 5.1's deferral note; revisit once a second package
   needs to share domain types with `market`/`analytics`
 - [ ] Betting-odds signal for matchup analysis — needs a registered (free-tier) odds API key from
   the maintainer, see 5.2c
-- [ ] Auto-resolve a Kickbase squad player to its OpenLigaDB team (currently `teamName` is a
-  manual/Claude-supplied input to `analyze-kickbase-team-matchup`) — blocked on confirming
-  Kickbase's actual `tn` field format against real data
+- [ ] Squad-wide matchup sweep (loop `analyze-kickbase-player-matchup` over every squad player in
+  one call) — not built; each call already costs 2 extra requests (player data + fixtures), so
+  doing this for a full squad from one tool call needs a batching/caching decision first
 - [ ] Winners/losers-across-the-whole-market analysis (5.2's original full scope; only the
   per-player half is built)
 - [ ] Feature packages: `scouting`, `predictions`, `transfers`, `optimizer`, `scheduler`, `notifications`, `ai`

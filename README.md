@@ -77,7 +77,7 @@ pnpm test
 
 ## MCP server & tools
 
-`packages/mcp-server` exposes nine tools via the Model Context Protocol. The four
+`packages/mcp-server` exposes ten tools via the Model Context Protocol. The four
 ported from the upstream fork are hardened (strict types, no `@ts-ignore`, typed
 errors, retry/timeout, and a confirmation guardrail on the money-affecting one);
 the rest are new:
@@ -92,6 +92,7 @@ the rest are new:
 | `get-kickbase-league-ranking` | League standings (name, points, placement); omit `dayNumber` for the season table or pass it for a single matchday | None |
 | `analyze-kickbase-player-value` | Estimates a fair value from market-value momentum and states up to what price a buy is reasonable; pass `consideredPrice` for an explicit BUY / TOO EXPENSIVE verdict. Transparent heuristic, not a guarantee — see [packages/market](packages/market/src/fair-value.ts). Points callers at a LigaInsider search for news the heuristic can't see | None |
 | `analyze-kickbase-team-matchup` | A club's recent form (last 5 results), next 3 Bundesliga fixtures, and fixture-congestion detection (2+/3+ matches within 7 days across Bundesliga/DFB-Pokal/European competitions) — rotation/injury risk context for a player from that club. Sourced from [OpenLigaDB](https://www.openligadb.de/), not Kickbase's API | None |
+| `analyze-kickbase-player-matchup` | Same as `analyze-kickbase-team-matchup`, but takes a `playerId` and resolves the player's real club automatically (via Kickbase's own team-name field) instead of requiring you to already know/pass the club name | None |
 | `make-kickbase-offer-for-player` | Places an offer on a player at a given price | **Budget-affecting.** Defaults to a dry run that only previews the offer; pass `confirm: true` to actually submit it (see [Guardrails](CLAUDE.md#guardrails-for-side-effecting-actions)) |
 
 ### Using it with Claude Desktop

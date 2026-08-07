@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
+  registerAnalyzePlayerMatchupTool,
   registerAnalyzePlayerValueTool,
   registerAnalyzeTeamMatchupTool,
   registerGetLeagueRankingTool,
@@ -29,12 +30,16 @@ function mockService(overrides: Partial<KickbaseService> = {}): KickbaseService 
     getPlayerValueAnalysis: vi.fn(),
     getSquadValuation: vi.fn(),
     getSquadReport: vi.fn(),
+    getPlayerTeamName: vi.fn(),
     makeOffer: vi.fn(),
     ...overrides,
   } as unknown as KickbaseService;
 }
 
-function captureHandler<S>(register: (server: McpServer, service: S) => void, service: S): Handler {
+function captureHandler<A extends unknown[]>(
+  register: (server: McpServer, ...args: A) => void,
+  ...args: A
+): Handler {
   let captured: Handler | undefined;
   const serverStub = {
     registerTool: (_name: string, _config: unknown, handler: Handler) => {
@@ -42,7 +47,7 @@ function captureHandler<S>(register: (server: McpServer, service: S) => void, se
     },
   } as unknown as McpServer;
 
-  register(serverStub, service);
+  register(serverStub, ...args);
   if (!captured) throw new Error("registerTool was not called");
   return captured;
 }
@@ -100,6 +105,22 @@ describe("registerAnalyzeTeamMatchupTool", () => {
     const result = await handler({ teamName: "Bayern" });
 
     expect(getTeamMatchupAnalysis).toHaveBeenCalledWith("Bayern");
+    expect(result.content[0].text).toContain("Matchup analysis");
+  });
+});
+
+describe("registerAnalyzePlayerMatchupTool", () => {
+  it("resolves the player's team name and delegates to the matchup service", async () => {
+    const getPlayerTeamName = vi.fn().mockResolvedValue("FC Bayern München");
+    const kickbaseService = mockService({ getPlayerTeamName });
+    const getTeamMatchupAnalysis = vi.fn().mockResolvedValue("Matchup analysis for FC Bayern München: ...");
+    const matchupService = mockMatchupService({ getTeamMatchupAnalysis });
+    const handler = captureHandler(registerAnalyzePlayerMatchupTool, kickbaseService, matchupService);
+
+    const result = await handler({ playerId: "42" });
+
+    expect(getPlayerTeamName).toHaveBeenCalledWith("42");
+    expect(getTeamMatchupAnalysis).toHaveBeenCalledWith("FC Bayern München");
     expect(result.content[0].text).toContain("Matchup analysis");
   });
 });

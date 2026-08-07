@@ -140,6 +140,35 @@ export function registerAnalyzeTeamMatchupTool(server: McpServer, matchupService
 }
 
 /**
+ * Convenience wrapper around analyze-kickbase-team-matchup: resolves the
+ * player's real club (Kickbase's `tn` field) automatically instead of
+ * requiring the caller to already know/pass a team name. Composes
+ * KickbaseService and MatchupService at this registration layer rather
+ * than coupling the two services to each other directly.
+ */
+export function registerAnalyzePlayerMatchupTool(
+  server: McpServer,
+  kickbaseService: KickbaseService,
+  matchupService: MatchupService,
+): void {
+  server.registerTool(
+    "analyze-kickbase-player-matchup",
+    {
+      title: "Analyze the club matchup for a Kickbase player",
+      description:
+        "Looks up the player's real club and reports its recent form, upcoming fixtures, and " +
+        "fixture congestion (see analyze-kickbase-team-matchup) - use this instead of that tool " +
+        "when you have a playerId but don't already know the player's club name.",
+      inputSchema: { playerId: z.string() },
+    },
+    async ({ playerId }) => {
+      const teamName = await kickbaseService.getPlayerTeamName(playerId);
+      return createTextResponse(await matchupService.getTeamMatchupAnalysis(teamName));
+    },
+  );
+}
+
+/**
  * make-offer is budget- and standing-affecting (see CLAUDE.md guardrails).
  * Default is a dry run that echoes back exactly what would happen; the
  * transaction only executes when the caller explicitly passes confirm: true.
