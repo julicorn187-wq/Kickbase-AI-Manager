@@ -6,6 +6,8 @@
     { "path": "./packages/market" },
     { "path": "./packages/analytics" },
     { "path": "./packages/reports" },
+    { "path": "./packages/openligadb" },
+    { "path": "./packages/fixtures" },
     { "path": "./packages/mcp-server" }
   ]
 }

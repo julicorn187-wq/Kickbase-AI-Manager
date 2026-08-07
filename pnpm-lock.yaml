@@ -48,6 +48,18 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.1)
 
+  packages/fixtures:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)
+
   packages/kickbase-api:
     dependencies:
       '@kickbase-ai-manager/shared':
@@ -81,12 +93,18 @@ importers:
       '@kickbase-ai-manager/analytics':
         specifier: workspace:*
         version: link:../analytics
+      '@kickbase-ai-manager/fixtures':
+        specifier: workspace:*
+        version: link:../fixtures
       '@kickbase-ai-manager/kickbase-api':
         specifier: workspace:*
         version: link:../kickbase-api
       '@kickbase-ai-manager/market':
         specifier: workspace:*
         version: link:../market
+      '@kickbase-ai-manager/openligadb':
+        specifier: workspace:*
+        version: link:../openligadb
       '@kickbase-ai-manager/reports':
         specifier: workspace:*
         version: link:../reports
@@ -99,6 +117,22 @@ importers:
       zod:
         specifier: ^3.25.76
         version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)
+
+  packages/openligadb:
+    dependencies:
+      '@kickbase-ai-manager/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
