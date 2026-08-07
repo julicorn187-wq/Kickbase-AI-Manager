@@ -22,7 +22,7 @@ import {
 } from "./tools.js";
 
 export interface KickbaseMcpServerOptions {
-  cookie: string;
+  token: string;
   leagueId: string;
   logger?: Logger;
   /**
@@ -46,7 +46,7 @@ export class KickbaseMcpServer {
     );
 
     const apiClient = new KickbaseApiClient({
-      cookie: options.cookie,
+      token: options.token,
       leagueId: options.leagueId,
       logger: this.logger,
     });

@@ -16,7 +16,14 @@ export interface Logger {
  * raw API payloads have leaked in the upstream project's logging — this list
  * is the guard against repeating that (see docs/upstream-analysis.md, finding #4).
  */
-const REDACTED_KEYS = new Set(["cookie", "kb_cookie", "authorization", "token", "password"]);
+const REDACTED_KEYS = new Set([
+  "cookie",
+  "kb_cookie",
+  "kb_token",
+  "authorization",
+  "token",
+  "password",
+]);
 
 function redact(fields: LogFields | undefined): LogFields | undefined {
   if (!fields) return fields;

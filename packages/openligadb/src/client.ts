@@ -24,7 +24,7 @@ function sleep(ms: number): Promise<void> {
  * Client for the free, publicly documented OpenLigaDB API (no auth). Same
  * retry/timeout shape as KickbaseApiClient; kept as a separate small
  * implementation rather than sharing code with it for now since that client
- * also handles cookie auth and league-scoped URLs that don't apply here —
+ * also handles bearer-token auth and league-scoped URLs that don't apply here —
  * see PLAN.md for the note to revisit extracting a shared fetch-retry
  * helper if a third client ever needs the same logic.
  */

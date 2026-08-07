@@ -1,7 +1,13 @@
 import { z } from "zod";
 
 const envSchema = z.object({
-  KB_COOKIE: z.string().min(1, "KB_COOKIE is required (Kickbase session cookie)"),
+  /**
+   * Kickbase auth token, sent as `Authorization: Bearer <KB_TOKEN>`. Named
+   * KB_TOKEN, not KB_COOKIE — the app authenticates this way, confirmed by
+   * inspecting its real network traffic (2026-08-08); there is no cookie
+   * involved. Short-lived (~1 hour observed) — expect to refresh it often.
+   */
+  KB_TOKEN: z.string().min(1, "KB_TOKEN is required (Kickbase auth token)"),
   LEAGUE_ID: z.string().min(1, "LEAGUE_ID is required (Kickbase league id)"),
   /**
    * Opt-in for the BaseXI integration (packages/basexi). Off by default: BaseXI's
@@ -27,7 +33,7 @@ export class EnvValidationError extends Error {
 /**
  * Parses and validates process env for required Kickbase credentials.
  * Throws EnvValidationError with actionable messages instead of surfacing
- * a raw ZodError, and never echoes the KB_COOKIE value.
+ * a raw ZodError, and never echoes the KB_TOKEN value.
  */
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   const result = envSchema.safeParse(source);

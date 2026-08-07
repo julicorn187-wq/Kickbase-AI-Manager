@@ -108,7 +108,7 @@ on the money-affecting one); the rest are new:
       "command": "node",
       "args": ["/absolute/path/to/kickbase-ai-manager/packages/mcp-server/build/index.js"],
       "env": {
-        "KB_COOKIE": "<your session cookie>",
+        "KB_TOKEN": "<your Kickbase Bearer token>",
         "LEAGUE_ID": "<your league id>"
       }
     }
@@ -120,9 +120,10 @@ on the money-affecting one); the rest are new:
 
 ## Disclaimer
 
-Kickbase does **not** provide an official public API. This project talks to
-Kickbase's internal v4 endpoints using a user-supplied session cookie
-(`kkstrauth`), based on community documentation. Consequences:
+Kickbase does **not** provide an official public API, and has no web version at
+all (it's mobile-app-only by design). This project talks to Kickbase's internal
+v4 endpoints using a user-supplied Bearer token (`Authorization: Bearer <token>`),
+based on community documentation and live traffic inspection. Consequences:
 
 - The API may change or break without notice.
 - Use is subject to Kickbase's Terms of Service — you are responsible for your own

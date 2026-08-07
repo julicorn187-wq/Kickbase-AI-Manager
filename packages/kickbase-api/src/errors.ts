@@ -9,13 +9,14 @@ export class KickbaseApiError extends Error {
   }
 }
 
-/** Thrown for 401/403 responses — almost always an expired or invalid KB_COOKIE. */
+/** Thrown for 401/403 responses — almost always an expired or invalid KB_TOKEN. */
 export class KickbaseAuthError extends KickbaseApiError {
   constructor(endpoint: string, status: number) {
     super(
       `Kickbase authentication failed (status ${status}) at ${endpoint}. ` +
-        "Your KB_COOKIE has likely expired — log into kickbase.de again and " +
-        "copy a fresh session cookie into your environment.",
+        "Your KB_TOKEN has likely expired (tokens are short-lived, ~1 hour). " +
+        "Kickbase has no web version — capture a fresh Bearer token from the " +
+        "mobile app's network traffic and update your environment.",
       endpoint,
       status,
     );

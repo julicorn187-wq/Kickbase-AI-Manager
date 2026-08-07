@@ -11,7 +11,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 function client(fetchImpl: typeof fetch, overrides: Partial<{ maxRetries: number }> = {}) {
   return new KickbaseApiClient({
-    cookie: "test-cookie",
+    token: "test-token",
     leagueId: "league-1",
     fetchImpl,
     maxRetries: overrides.maxRetries ?? 0,
@@ -20,10 +20,10 @@ function client(fetchImpl: typeof fetch, overrides: Partial<{ maxRetries: number
 }
 
 describe("KickbaseApiClient", () => {
-  it("returns parsed JSON on success and sends the cookie header", async () => {
+  it("returns parsed JSON on success and sends the bearer token header", async () => {
     const fetchMock = vi.fn((_url: string, init?: RequestInit) => {
       const headers = init?.headers as Record<string, string>;
-      expect(headers.Cookie).toBe("test-cookie");
+      expect(headers.Authorization).toBe("Bearer test-token");
       return jsonResponse({ it: [] });
     });
 

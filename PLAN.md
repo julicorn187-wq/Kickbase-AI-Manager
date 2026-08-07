@@ -199,3 +199,18 @@ mid-flight.
   broken/duplicated root `test` script. `pnpm install && pnpm typecheck && pnpm
   lint && pnpm test && pnpm build` now all pass from a clean state (31/31 tests).
   Milestones 1–4 promoted from written-but-unverified to verified.
+- 2026-08-08 — Corrected a project-wide (and upstream-inherited) wrong assumption
+  about Kickbase auth. Live network capture from a real iPhone app session showed
+  Kickbase actually authenticates via `Authorization: Bearer <JWT>`, not a
+  `Cookie: kkstrauth=...` header — and Kickbase has **no web version at all**
+  (mobile-app-only by design), so the "log into kickbase.de and copy a cookie"
+  instructions in `.env.example`/README.md/`KickbaseAuthError` were factually
+  wrong. Renamed `KB_COOKIE` → `KB_TOKEN` and switched `KickbaseApiClient` from
+  sending a `Cookie` header to `Authorization: Bearer` across `shared` (env,
+  logger redaction), `kickbase-api` (client + errors + tests), and `mcp-server`
+  (server options + index.ts), and rewrote `.env.example`/README.md with the two
+  real ways to obtain a token (the `/v4/user/login` email+password endpoint, or
+  capturing it from app traffic via a local MITM proxy for OAuth-based logins).
+  `docs/upstream-analysis.md`/`docs/adr/0001-*`/`reference/upstream/` are left
+  untouched — they accurately document what the *upstream* fork's code did, not
+  a live setup guide.

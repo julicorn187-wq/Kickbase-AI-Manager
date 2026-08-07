@@ -21,12 +21,12 @@ describe("createLogger", () => {
     const lines: string[] = [];
     const logger = createLogger({ sink: (line) => lines.push(line) });
 
-    logger.info("request made", { KB_COOKIE: "super-secret", token: "abc", ok: true });
+    logger.info("request made", { KB_TOKEN: "super-secret", token: "abc", ok: true });
 
     const [line] = lines;
     if (!line) throw new Error("expected a log line");
     const entry = JSON.parse(line) as Record<string, unknown>;
-    expect(entry.KB_COOKIE).toBe("[REDACTED]");
+    expect(entry.KB_TOKEN).toBe("[REDACTED]");
     expect(entry.token).toBe("[REDACTED]");
     expect(entry.ok).toBe(true);
   });

@@ -16,15 +16,18 @@ const DEFAULT_MAX_RETRIES = 2;
 const RETRYABLE_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
 
 export interface KickbaseApiClientOptions {
-  /** Kickbase session cookie value. Required — never falls back to process.env implicitly. */
-  cookie: string;
+  /**
+   * Kickbase auth token, sent as `Authorization: Bearer <token>`. Required —
+   * never falls back to process.env implicitly. Short-lived (~1 hour observed).
+   */
+  token: string;
   /** League id this client talks to. Configurable per instance, not process-wide. */
   leagueId: string;
   /** Override the API base URL (mainly for tests). */
   baseUrl?: string;
   /** Override fetch (mainly for tests). */
   fetchImpl?: typeof fetch;
-  /** Structured logger; defaults to a shared JSON logger with cookies redacted. */
+  /** Structured logger; defaults to a shared JSON logger with tokens redacted. */
   logger?: Logger;
   /** Per-request timeout in ms. */
   timeoutMs?: number;
@@ -48,7 +51,7 @@ export class KickbaseApiClient {
     const apiBase = options.baseUrl ?? KICKBASE_API_BASE;
     this.baseUrl = `${apiBase}/leagues/${options.leagueId}`;
     this.headers = {
-      Cookie: options.cookie,
+      Authorization: `Bearer ${options.token}`,
       "Content-Type": "application/json",
     };
     this.fetchImpl = options.fetchImpl ?? fetch;
