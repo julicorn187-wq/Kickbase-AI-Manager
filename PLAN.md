@@ -237,3 +237,32 @@ mid-flight.
   to use — the tool falls back to last season's averages and says so
   explicitly in its output. Re-verify the forecast's usefulness once real
   matches start.
+- 2026-08-08 — Added two quant-finance-inspired refinements to
+  `packages/predictions`, per the maintainer's request to draw on quant
+  techniques and to weigh (not blindly follow) community Kickbase creator
+  opinions:
+  - `shrinkage.ts`: `applyShrinkage` — empirical-Bayes/credibility-weighted
+    shrinkage (the same "don't trust a noisy small sample at face value"
+    logic used in quant equity factor models and actuarial credibility
+    theory). A player's averagePoints is pulled toward the position's
+    average across the scored pool (`positionBaseline`, computed by
+    `ForecastService`) in proportion to `gamesConsidered` — a player with 2
+    games played is scored far more conservatively than one with 30.
+    `compositeScore` uses the shrunk value when a baseline is supplied;
+    the raw figure is still shown for transparency. Optional — omitting
+    `positionBaseline` skips shrinkage entirely.
+  - `lineup-builder.ts`: `buildValueLineup` now returns
+    `concentrationWarnings` — portfolio-concentration-risk logic (don't
+    overweight one "sector"): flags any club with more than 2 starters in
+    the suggested XI, since one bad result for that club would then swing
+    several picks at once.
+  Also documented in CLAUDE.md that community Kickbase YouTube/Instagram
+  creator recommendations are a live-web-search input at forecast time
+  (same non-scraping pattern as LigaInsider), never an automated
+  "channels I follow" background job — Instagram/YouTube ToS make that a
+  clearly worse idea than the already-rejected LigaInsider scraper, and
+  there's no reliable way to resolve a creator's opinion to a Kickbase
+  player id automatically anyway. The forecast tool's own output now
+  reminds the caller to weigh such opinions critically against the
+  disclosed scoring, not defer to them.
+  Verified clean: typecheck, lint, 154/154 tests, and build all pass.

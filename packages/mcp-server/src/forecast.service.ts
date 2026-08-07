@@ -42,7 +42,9 @@ export class ForecastService {
       this.buildTeamStrengthMap(),
     ]);
 
-    const scored = players.filter(hasKickbasePosition).map((player) => this.scorePlayer(player, teamStrengthByName));
+    const eligible = players.filter(hasKickbasePosition);
+    const positionBaselines = computePositionBaselines(eligible);
+    const scored = eligible.map((player) => this.scorePlayer(player, teamStrengthByName, positionBaselines));
     const lineup = buildValueLineup(scored);
 
     return formatReport(scored, lineup, topPerPosition);
@@ -75,10 +77,9 @@ export class ForecastService {
   private scorePlayer(
     player: BaseXiPlayer & { position: KickbasePosition },
     teamStrengthByName: Map<string, TeamStrengthInput>,
+    positionBaselines: Map<KickbasePosition, number>,
   ): PlayerValueScore {
-    const usesCurrentSeason = player.matchesPlayed > 0;
-    const averagePoints = usesCurrentSeason ? player.avgPoints : player.avgPrevSeason;
-    const gamesConsidered = usesCurrentSeason ? player.matchesPlayed : player.gamesPrevSeason;
+    const { averagePoints, averagePointsSource, gamesConsidered } = resolveRawAverage(player);
 
     const ownTeam = teamStrengthByName.get(normalizeTeamName(player.teamName));
     const opponentTeam = player.match_data
@@ -86,6 +87,7 @@ export class ForecastService {
       : undefined;
     const oddsString = player.match_data?.odds ?? player.next_match?.odds;
     const impliedProbabilities = oddsString ? parseImpliedProbabilities(oddsString) : undefined;
+    const positionBaseline = positionBaselines.get(player.position);
 
     const input: PlayerScoreInput = {
       id: player.id,
@@ -94,8 +96,9 @@ export class ForecastService {
       teamName: player.teamName,
       marketValue: player.marketValue,
       averagePoints,
-      averagePointsSource: usesCurrentSeason ? "current-season" : "previous-season",
+      averagePointsSource,
       gamesConsidered,
+      ...(positionBaseline !== undefined && { positionBaseline }),
       ...(player.match_data && { isHome: player.match_data.home_game }),
       ...(ownTeam && { ownTeam }),
       ...(opponentTeam && { opponentTeam }),
@@ -106,6 +109,47 @@ export class ForecastService {
 
     return computePlayerValueScore(input);
   }
+}
+
+interface RawAverage {
+  averagePoints: number;
+  averagePointsSource: "current-season" | "previous-season";
+  gamesConsidered: number;
+}
+
+function resolveRawAverage(player: BaseXiPlayer): RawAverage {
+  const usesCurrentSeason = player.matchesPlayed > 0;
+  return {
+    averagePoints: usesCurrentSeason ? player.avgPoints : player.avgPrevSeason,
+    averagePointsSource: usesCurrentSeason ? "current-season" : "previous-season",
+    gamesConsidered: usesCurrentSeason ? player.matchesPlayed : player.gamesPrevSeason,
+  };
+}
+
+/**
+ * The average of averagePoints across all eligible players at each position —
+ * the shrinkage prior a small-sample player's own average gets pulled toward
+ * (see @kickbase-ai-manager/predictions/shrinkage.ts). Computed once per call
+ * over the same pool being scored, not a separately fetched "true" baseline.
+ */
+function computePositionBaselines(
+  players: (BaseXiPlayer & { position: KickbasePosition })[],
+): Map<KickbasePosition, number> {
+  const sumsByPosition = new Map<KickbasePosition, { total: number; count: number }>();
+
+  for (const player of players) {
+    const { averagePoints } = resolveRawAverage(player);
+    const bucket = sumsByPosition.get(player.position) ?? { total: 0, count: 0 };
+    bucket.total += averagePoints;
+    bucket.count += 1;
+    sumsByPosition.set(player.position, bucket);
+  }
+
+  const baselines = new Map<KickbasePosition, number>();
+  for (const [position, { total, count }] of sumsByPosition) {
+    if (count > 0) baselines.set(position, total / count);
+  }
+  return baselines;
 }
 
 function formatReport(scored: PlayerValueScore[], lineup: ValueLineup, topPerPosition: number): string {
@@ -129,6 +173,11 @@ function formatReport(scored: PlayerValueScore[], lineup: ValueLineup, topPerPos
   lines.push(`Suggested value-XI (formation ${formatFormation(lineup.formation)}):`);
   lines.push(...lineup.starters.map((p) => `  ${formatPlayerLine(p)}`));
 
+  if (lineup.concentrationWarnings.length > 0) {
+    lines.push("", "Concentration risk (portfolio-style diversification check):");
+    lines.push(...lineup.concentrationWarnings.map((w) => `  ${w}`));
+  }
+
   if (lineup.bench.length > 0) {
     lines.push("", "Bench options (next-best per position):");
     lines.push(...lineup.bench.map((p) => `  ${formatPlayerLine(p)}`));
@@ -150,7 +199,10 @@ function formatReport(scored: PlayerValueScore[], lineup: ValueLineup, topPerPos
     "This does not know confirmed starting lineups or injuries. Before finalizing your real " +
       "lineup, search LigaInsider for each player above" +
       (firstStarterName ? `, e.g. "${buildLigaInsiderSearchQuery(firstStarterName)}"` : "") +
-      " — repeat per player.",
+      " — repeat per player. If you have live web search, it's also worth checking what " +
+      "well-known Kickbase YouTube/Instagram creators are currently recommending — treat that " +
+      "as one more opinion to weigh critically against the disclosed scoring above, not a " +
+      "source of truth (this project doesn't scrape those platforms; see CLAUDE.md).",
   );
 
   return lines.join("\n");
@@ -160,9 +212,11 @@ function formatPlayerLine(player: PlayerValueScore): string {
   const momentum = player.baseXiMomentum ? `, momentum: ${player.baseXiMomentum}` : "";
   const difficulty =
     player.baseXiNextMatchDifficulty !== undefined ? `, BaseXI difficulty: ${String(player.baseXiNextMatchDifficulty)}` : "";
+  const shrunk =
+    player.shrunkAveragePoints !== undefined ? `, shrunk: ${player.shrunkAveragePoints.toFixed(1)}` : "";
   return (
     `${player.name} (${player.position}, ${player.teamName}) — score ${player.compositeScore.toFixed(1)} ` +
-    `[${player.averagePointsSource}, ${String(player.gamesConsidered)}g, adj ${formatPct(player.adjustmentPct)}${momentum}${difficulty}]`
+    `[${player.averagePointsSource}, ${String(player.gamesConsidered)}g${shrunk}, adj ${formatPct(player.adjustmentPct)}${momentum}${difficulty}]`
   );
 }
 

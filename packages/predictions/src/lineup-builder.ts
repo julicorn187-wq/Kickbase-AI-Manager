@@ -5,11 +5,21 @@ export type LineupFormation = Record<KickbasePosition, number>;
 /** A common balanced Bundesliga-style formation (4-4-2 outfield + 1 GK), used when no formation is given. */
 export const DEFAULT_FORMATION: LineupFormation = { Torwart: 1, Abwehr: 4, Mittelfeld: 4, Sturm: 2 };
 
+/**
+ * More than this many starters from one club is flagged as concentrated,
+ * correlated risk — portfolio-construction logic borrowed from quant
+ * finance: a single adverse event (a bad result, a red card, a postponed
+ * match) then swings multiple of your 11 picks at once instead of just one.
+ */
+const MAX_RECOMMENDED_PER_TEAM = 2;
+
 export interface ValueLineup {
   formation: LineupFormation;
   starters: PlayerValueScore[];
   /** Up to 3 next-best players per position, in case a starter is unavailable or already owned by someone else. */
   bench: PlayerValueScore[];
+  /** One entry per club with more than MAX_RECOMMENDED_PER_TEAM starters — see the constant's doc comment. */
+  concentrationWarnings: string[];
 }
 
 /**
@@ -35,7 +45,22 @@ export function buildValueLineup(
     bench.push(...ranked.slice(slotCount, slotCount + 3));
   }
 
-  return { formation, starters, bench };
+  return { formation, starters, bench, concentrationWarnings: computeConcentrationWarnings(starters) };
+}
+
+function computeConcentrationWarnings(starters: PlayerValueScore[]): string[] {
+  const countsByTeam = new Map<string, number>();
+  for (const player of starters) {
+    countsByTeam.set(player.teamName, (countsByTeam.get(player.teamName) ?? 0) + 1);
+  }
+
+  return [...countsByTeam.entries()]
+    .filter(([, count]) => count > MAX_RECOMMENDED_PER_TEAM)
+    .map(
+      ([teamName, count]) =>
+        `${count} starters from ${teamName} — correlated risk: one bad result for that club would hit ` +
+        `${count} of your 11 picks at once. Consider diversifying.`,
+    );
 }
 
 function groupByPosition(players: PlayerValueScore[]): Map<KickbasePosition, PlayerValueScore[]> {

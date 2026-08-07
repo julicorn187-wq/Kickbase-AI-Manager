@@ -55,6 +55,19 @@ has no documented search endpoint to resolve one to the other. Instead,
 web search (Claude Desktop) can pull current news into the decision. Follow this
 pattern for any new buy/sell recommendation tool rather than adding a scraper.
 
+The same pattern applies to community Kickbase creators (YouTube/Instagram
+accounts that post matchday buy/sell picks): there is no API for this and
+scraping Instagram/YouTube is both against their ToS and far riskier than the
+LigaInsider case (no clean id-resolution problem, just a platform that
+disallows automated access). Do not build a scraper or a "channels I follow"
+background job for this. Instead, when actually producing a forecast in a live
+conversation (not inside automated tool code), use live web search to check
+what well-known Kickbase creators are currently recommending, treat it as one
+qualitative opinion signal among several, and weigh it critically against this
+project's own disclosed, data-driven scoring (`@kickbase-ai-manager/predictions`)
+rather than deferring to it — state explicitly when a recommendation here comes
+from a creator's opinion vs. from the disclosed formula.
+
 ## External data sources
 
 Kickbase's own v4 API is undocumented and reverse-engineered — treat any new

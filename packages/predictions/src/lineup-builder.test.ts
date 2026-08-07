@@ -21,10 +21,18 @@ function player(overrides: Partial<PlayerValueScore> = {}): PlayerValueScore {
 
 function pool(counts: Record<KickbasePosition, number>): PlayerValueScore[] {
   const players: PlayerValueScore[] = [];
+  let globalIndex = 0;
   (Object.keys(counts) as KickbasePosition[]).forEach((position) => {
     for (let i = 0; i < counts[position]; i++) {
       players.push(
-        player({ id: `${position}-${i}`, position, compositeScore: 100 - i, name: `${position} #${i}` }),
+        player({
+          id: `${position}-${i}`,
+          position,
+          compositeScore: 100 - i,
+          name: `${position} #${i}`,
+          // Every player on a distinct team so pool-based tests never trip the concentration-risk check by accident.
+          teamName: `Team ${String(globalIndex++)}`,
+        }),
       );
     }
   });
@@ -79,5 +87,33 @@ describe("buildValueLineup", () => {
 
   it("defaults to a balanced 1-4-4-2 formation", () => {
     expect(DEFAULT_FORMATION).toEqual({ Torwart: 1, Abwehr: 4, Mittelfeld: 4, Sturm: 2 });
+  });
+
+  it("flags a club with more than 2 starters as concentrated risk", () => {
+    const players = [
+      player({ id: "gk", position: "Torwart", teamName: "FC Bayern München" }),
+      player({ id: "def-1", position: "Abwehr", teamName: "FC Bayern München" }),
+      player({ id: "def-2", position: "Abwehr", teamName: "FC Bayern München" }),
+      player({ id: "def-3", position: "Abwehr", teamName: "Team A" }),
+      player({ id: "def-4", position: "Abwehr", teamName: "Team A" }),
+      player({ id: "mid-0", position: "Mittelfeld", teamName: "Team B" }),
+      player({ id: "mid-1", position: "Mittelfeld", teamName: "Team B" }),
+      player({ id: "mid-2", position: "Mittelfeld", teamName: "Team C" }),
+      player({ id: "mid-3", position: "Mittelfeld", teamName: "Team C" }),
+      player({ id: "fwd-0", position: "Sturm", teamName: "Team D" }),
+      player({ id: "fwd-1", position: "Sturm", teamName: "Team D" }),
+    ];
+
+    const lineup = buildValueLineup(players);
+
+    expect(lineup.concentrationWarnings).toHaveLength(1);
+    expect(lineup.concentrationWarnings[0]).toContain("3 starters from FC Bayern München");
+  });
+
+  it("raises no warning when no club has more than 2 starters", () => {
+    const players = pool({ Torwart: 1, Abwehr: 4, Mittelfeld: 4, Sturm: 2 });
+    const lineup = buildValueLineup(players);
+
+    expect(lineup.concentrationWarnings).toEqual([]);
   });
 });

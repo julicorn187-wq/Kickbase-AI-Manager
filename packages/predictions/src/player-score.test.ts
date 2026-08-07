@@ -58,4 +58,30 @@ describe("computePlayerValueScore", () => {
       marketValue: 68_000_000,
     });
   });
+
+  it("does not shrink when no positionBaseline is supplied", () => {
+    const result = computePlayerValueScore(input());
+    expect(result.shrunkAveragePoints).toBeUndefined();
+    expect(result.compositeScore).toBe(216);
+  });
+
+  it("shrinks a small sample toward the position baseline and scores off the shrunk value", () => {
+    const result = computePlayerValueScore(input({ gamesConsidered: 2, averagePoints: 200, positionBaseline: 80 }));
+
+    expect(result.shrunkAveragePoints).toBeDefined();
+    expect(result.shrunkAveragePoints).toBeLessThan(200);
+    expect(result.shrunkAveragePoints).toBeGreaterThan(80);
+    expect(result.compositeScore).toBeCloseTo(result.shrunkAveragePoints ?? 0, 5);
+    expect(result.averagePoints).toBe(200); // raw figure preserved for display
+    expect(result.rationale.some((r) => r.includes("shrunk toward"))).toBe(true);
+  });
+
+  it("barely shrinks a large sample and skips the rationale note", () => {
+    const result = computePlayerValueScore(
+      input({ gamesConsidered: 1000, averagePoints: 200, positionBaseline: 80 }),
+    );
+
+    expect(result.shrunkAveragePoints).toBeGreaterThan(195);
+    expect(result.rationale.some((r) => r.includes("shrunk toward"))).toBe(false);
+  });
 });
