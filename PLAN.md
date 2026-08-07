@@ -19,10 +19,7 @@ mid-flight.
 - [x] Author PLAN.md + PROMPT.md (this plan and the loop driver)
 - [x] `git init` + initial commit
 
-## Milestone 1 — Toolchain & monorepo foundation
-> **Prerequisite (human):** install **Node.js 22 LTS**, then `corepack enable`.
-> Config below is written but **unverified** — `[!]` blocked on Node install for
-> actual `pnpm install`/build/test execution.
+## Milestone 1 — Toolchain & monorepo foundation  ✅ (verified 2026-08-07)
 
 - [x] **1.1** Add root `package.json` (private, `packageManager: pnpm@…`), `pnpm-workspace.yaml` covering `packages/*` and `apps/*`
 - [x] **1.2** Add `tsconfig.base.json` — strict, `noUncheckedIndexedAccess`, `Node16` module resolution, project references ready
@@ -31,16 +28,16 @@ mid-flight.
 - [x] **1.5** Add Vitest at root with a trivial passing sanity test; wire `pnpm test`
 - [x] **1.6** Add `.env.example` documenting `KB_COOKIE`, `LEAGUE_ID`
 - [x] **1.7** Add GitHub Actions CI: install → typecheck → lint → test → build on push/PR
-- [!] **1.8** Verify `pnpm install && pnpm build && pnpm test && pnpm lint` all green — blocked, no Node on dev machine yet
+- [x] **1.8** Verify `pnpm install && pnpm build && pnpm test && pnpm lint` all green — done 2026-08-07. This was not a rubber stamp: fixed a missing `@types/node` dependency (nothing typechecked at all before), a `tsc -b --noEmit` incompatibility with project references, a turbo race between the `build` and `typecheck` tasks, an MCP SDK API mismatch (server.ts/tools.ts were written against a different SDK shape than what's installed), ESLint never actually linting test files, and a broken/duplicated root `test` script. See commit history.
 
-## Milestone 2 — `packages/shared`  ✅ (written 2026-08-04, unverified — see 1.8)
+## Milestone 2 — `packages/shared`  ✅ (written 2026-08-04, verified 2026-08-07)
 - [x] **2.1** Scaffold package (tsconfig extends base, package.json, src/index.ts)
 - [x] **2.2** Env schema with zod: parse+validate `KB_COOKIE`, `LEAGUE_ID`; typed accessor; fail fast with a clear message
 - [x] **2.3** Structured logger (levels; **never logs secrets or full API payloads at info** — fixes upstream finding #4)
 - [x] **2.4** `Result<T,E>` / typed error primitives for the API layer
 - [x] **2.5** Unit tests for env parsing (valid/invalid) and Result helpers
 
-## Milestone 3 — `packages/kickbase-api` (hardened client)  ✅ (written 2026-08-04, unverified — see 1.8)
+## Milestone 3 — `packages/kickbase-api` (hardened client)  ✅ (written 2026-08-04, verified 2026-08-07)
 - [x] **3.1** Scaffold package; depend on `shared`
 - [x] **3.2** Port `KickbaseApiClient` from `reference/upstream`; **remove `@ts-ignore`** (finding #1)
 - [x] **3.3** Complete domain types (players, market, squad, market-value) — replace cryptic partial types (finding #7); document each field
@@ -48,13 +45,13 @@ mid-flight.
 - [x] **3.5** Make league configurable per call/instance, not just process env (removes single-league hard-wire)
 - [x] **3.6** Unit tests with mocked `fetch` (success, non-2xx, expired cookie, malformed body)
 
-## Milestone 4 — `packages/mcp-server` (parity, hardened)  ✅ (written 2026-08-04, unverified — see 1.8)
+## Milestone 4 — `packages/mcp-server` (parity, hardened)  ✅ (written 2026-08-04, verified 2026-08-07)
 - [x] **4.1** Scaffold package; depend on `kickbase-api`, `shared`
 - [x] **4.2** Port the 4 tools (player info, list market, my squad, make offer) with clean types, no `@ts-ignore` (finding #1 in server.ts)
 - [x] **4.3** Implement `makeOffer` **guardrail**: dry-run default, explicit execute flag, confirmation echo of what will happen (finding #6)
 - [x] **4.4** Port `ToolResponseBuilder`; ensure tool descriptions/docs are complete
 - [x] **4.5** Wire MCP server entry (package `bin`); document `claude_desktop_config.json` usage in README
-- [x] **4.6** Tests for tool handlers (service mocked) — written; not yet run (blocked on Node, see 1.8)
+- [x] **4.6** Tests for tool handlers (service mocked) — written and passing (31/31 across the repo, see 1.8)
 - [ ] **4.6b** Manual smoke test against Claude Desktop — needs Node + a real KB_COOKIE/LEAGUE_ID, do after 1.8
 - [ ] **4.7** Tag **v0.1.0** — after 1.8 and 4.6b are green
 
@@ -84,3 +81,10 @@ mid-flight.
   `mcp-server` with 4 tools + `makeOffer` dry-run guardrail). Unverified — no
   Node.js on the dev machine yet, so `pnpm install`/build/test/lint have not
   actually been run. Treat as a strong draft, not a green build, until 1.8 runs.
+- 2026-08-07 — Node 22+/pnpm installed; ran 1.8 for the first time. Not green on
+  the first attempt: fixed a missing `@types/node` dependency, a `tsc -b --noEmit`
+  incompatibility with project references, a turbo race between `build` and
+  `typecheck`, an MCP SDK API mismatch, ESLint never linting test files, and a
+  broken/duplicated root `test` script. `pnpm install && pnpm typecheck && pnpm
+  lint && pnpm test && pnpm build` now all pass from a clean state (31/31 tests).
+  Milestones 1–4 promoted from written-but-unverified to verified.
