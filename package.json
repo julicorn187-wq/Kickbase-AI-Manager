@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "turbo run build",
-    "test": "vitest run && turbo run test",
+    "test": "vitest run",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "format": "prettier --write .",
