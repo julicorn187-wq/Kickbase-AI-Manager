@@ -1,6 +1,7 @@
 import { createLogger, type Logger } from "@kickbase-ai-manager/shared";
 import { KickbaseApiError, KickbaseAuthError, KickbaseNetworkError, KickbaseParseError } from "./errors.js";
 import type {
+  LeagueRankingData,
   MarketValueData,
   PlayerData,
   PlayerMarketItem,
@@ -159,6 +160,16 @@ export class KickbaseApiClient {
   async getMySquad(): Promise<SquadData> {
     this.logger.info("fetching squad data");
     return this.makeRequest<SquadData>("/squad");
+  }
+
+  /**
+   * Fetches the league ranking table. Pass dayNumber for a single
+   * matchday's standings; omit it for the season-overall ranking.
+   */
+  async getLeagueRanking(dayNumber?: number): Promise<LeagueRankingData> {
+    this.logger.info("fetching league ranking", { dayNumber });
+    const query = dayNumber === undefined ? "" : `?dayNumber=${dayNumber}`;
+    return this.makeRequest<LeagueRankingData>(`/ranking${query}`);
   }
 
   /**

@@ -4,6 +4,7 @@ import { KickbaseApiClient } from "@kickbase-ai-manager/kickbase-api";
 import { createLogger, type Logger } from "@kickbase-ai-manager/shared";
 import { KickbaseService } from "./kickbase.service.js";
 import {
+  registerGetLeagueRankingTool,
   registerGetMySquadTool,
   registerGetPlayerInfoTool,
   registerListMarketTool,
@@ -42,6 +43,7 @@ export class KickbaseMcpServer {
     registerListMarketTool(this.server, kickbaseService);
     registerMakeOfferTool(this.server, kickbaseService);
     registerGetMySquadTool(this.server, kickbaseService);
+    registerGetLeagueRankingTool(this.server, kickbaseService);
   }
 
   async start(): Promise<void> {

@@ -40,6 +40,20 @@ export function registerGetMySquadTool(server: McpServer, kickbaseService: Kickb
   );
 }
 
+export function registerGetLeagueRankingTool(server: McpServer, kickbaseService: KickbaseService): void {
+  server.registerTool(
+    "get-kickbase-league-ranking",
+    {
+      title: "Get the Kickbase league ranking table",
+      description:
+        "Returns the league standings: manager names, points and placement. Omit dayNumber " +
+        "for the season-overall ranking, or pass it to get a single matchday's standings.",
+      inputSchema: { dayNumber: z.number().int().positive().optional() },
+    },
+    async ({ dayNumber }) => createTextResponse(await kickbaseService.getLeagueRanking(dayNumber)),
+  );
+}
+
 /**
  * make-offer is budget- and standing-affecting (see CLAUDE.md guardrails).
  * Default is a dry run that echoes back exactly what would happen; the

@@ -69,15 +69,17 @@ pnpm test
 
 ## MCP server & tools
 
-`packages/mcp-server` exposes four tools via the Model Context Protocol, functionally
-at parity with the upstream fork but hardened (strict types, no `@ts-ignore`, typed
-errors, retry/timeout, and a confirmation guardrail on the money-affecting one):
+`packages/mcp-server` exposes five tools via the Model Context Protocol. The four
+ported from the upstream fork are hardened (strict types, no `@ts-ignore`, typed
+errors, retry/timeout, and a confirmation guardrail on the money-affecting one);
+the league ranking tool is new:
 
 | Tool | Description | Side effects |
 |------|-------------|---------------|
 | `get-kickbase-player-information` | Player performance and market-value data (incl. 1-day/7-day value trend) for a `playerId` | None |
 | `list-kickbase-market` | Players currently listed on the market, soonest-expiring first | None |
 | `get-my-kickbase-squad` | Your current squad with position, points, market value, status | None |
+| `get-kickbase-league-ranking` | League standings (name, points, placement); omit `dayNumber` for the season table or pass it for a single matchday | None |
 | `make-kickbase-offer-for-player` | Places an offer on a player at a given price | **Budget-affecting.** Defaults to a dry run that only previews the offer; pass `confirm: true` to actually submit it (see [Guardrails](CLAUDE.md#guardrails-for-side-effecting-actions)) |
 
 ### Using it with Claude Desktop

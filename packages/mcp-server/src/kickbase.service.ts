@@ -1,4 +1,8 @@
-import type { KickbaseApiClient, MarketValueData } from "@kickbase-ai-manager/kickbase-api";
+import type {
+  KickbaseApiClient,
+  LeagueRankingUser,
+  MarketValueData,
+} from "@kickbase-ai-manager/kickbase-api";
 import { PLAYER_POSITION } from "@kickbase-ai-manager/kickbase-api";
 
 const DEFAULT_MARKET_LIMIT = 20;
@@ -83,6 +87,35 @@ export class KickbaseService {
 
   async makeOffer(playerId: string, price: number): Promise<void> {
     await this.apiClient.makeOffer(playerId, price);
+  }
+
+  async getLeagueRanking(dayNumber?: number): Promise<string> {
+    const data = await this.apiClient.getLeagueRanking(dayNumber);
+
+    if (data.us.length === 0) {
+      return "No ranking data available for this league.";
+    }
+
+    const isMatchday = dayNumber !== undefined;
+    const rows = data.us
+      .map((user) => this.toRankingRow(user, isMatchday))
+      .sort((a, b) => a.placement - b.placement);
+
+    const header = isMatchday ? `League Ranking — Matchday ${dayNumber}` : "League Ranking (Season)";
+    const body = rows.map((row) => `${row.placement}. ${row.name} — ${row.points} pts`).join("\n");
+
+    return `${header}\n${body}`;
+  }
+
+  private toRankingRow(
+    user: LeagueRankingUser,
+    isMatchday: boolean,
+  ): { name: string; points: number; placement: number } {
+    return {
+      name: user.n,
+      points: (isMatchday ? user.mdp : user.sp) ?? 0,
+      placement: (isMatchday ? user.mdpl : user.spl) ?? Number.MAX_SAFE_INTEGER,
+    };
   }
 
   private getPositionName(pos: number): string {

@@ -41,6 +41,26 @@ describe("KickbaseApiClient", () => {
     await client(fetchMock as unknown as typeof fetch).getMySquad();
   });
 
+  it("fetches the overall ranking without a dayNumber query param", async () => {
+    const fetchMock = vi.fn((url: string) => {
+      expect(url).toContain("/leagues/league-1/ranking");
+      expect(url).not.toContain("dayNumber");
+      return jsonResponse({ us: [{ i: "u1", n: "User A", sp: 10 }] });
+    });
+
+    const result = await client(fetchMock as unknown as typeof fetch).getLeagueRanking();
+    expect(result).toEqual({ us: [{ i: "u1", n: "User A", sp: 10 }] });
+  });
+
+  it("appends dayNumber as a query param when fetching a matchday ranking", async () => {
+    const fetchMock = vi.fn((url: string) => {
+      expect(url).toContain("/leagues/league-1/ranking?dayNumber=5");
+      return jsonResponse({ us: [{ i: "u1", n: "User A", mdp: 7 }] });
+    });
+
+    await client(fetchMock as unknown as typeof fetch).getLeagueRanking(5);
+  });
+
   it("throws KickbaseAuthError on 401 without retrying", async () => {
     const fetchMock = vi.fn(() => jsonResponse({ error: "unauthorized" }, 401));
 

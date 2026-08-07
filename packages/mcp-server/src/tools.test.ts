@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
+  registerGetLeagueRankingTool,
   registerGetMySquadTool,
   registerGetPlayerInfoTool,
   registerListMarketTool,
@@ -19,6 +20,7 @@ function mockService(overrides: Partial<KickbaseService> = {}): KickbaseService 
     getMarketPlayers: vi.fn(),
     getPlayerInformation: vi.fn(),
     getMySquad: vi.fn(),
+    getLeagueRanking: vi.fn(),
     makeOffer: vi.fn(),
     ...overrides,
   } as unknown as KickbaseService;
@@ -71,6 +73,29 @@ describe("registerGetMySquadTool", () => {
     const result = await handler({});
 
     expect(result.content[0].text).toBe("squad text");
+  });
+});
+
+describe("registerGetLeagueRankingTool", () => {
+  it("passes dayNumber through and returns the formatted ranking", async () => {
+    const getLeagueRanking = vi.fn().mockResolvedValue("League Ranking — Matchday 3\n1. User A — 12 pts");
+    const service = mockService({ getLeagueRanking });
+    const handler = captureHandler(registerGetLeagueRankingTool, service);
+
+    const result = await handler({ dayNumber: 3 });
+
+    expect(getLeagueRanking).toHaveBeenCalledWith(3);
+    expect(result.content[0].text).toContain("Matchday 3");
+  });
+
+  it("omits dayNumber for the season-overall ranking", async () => {
+    const getLeagueRanking = vi.fn().mockResolvedValue("League Ranking (Season)\n1. User A — 50 pts");
+    const service = mockService({ getLeagueRanking });
+    const handler = captureHandler(registerGetLeagueRankingTool, service);
+
+    await handler({});
+
+    expect(getLeagueRanking).toHaveBeenCalledWith(undefined);
   });
 });
 

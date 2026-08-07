@@ -57,6 +57,14 @@ mid-flight.
 
 ## Milestone 5 — First intelligence increment (choose one to start)
 > Pick the highest-value feature package and build it thin end-to-end before widening.
+- [x] **5.0** `get-kickbase-league-ranking` MCP tool — season and per-matchday
+  standings via `GET /v4/leagues/{leagueId}/ranking`. Read-only. Field names
+  (`us`, `i`, `n`, `sp`/`spl`, `mdp`/`mdpl`) are not officially documented by
+  Kickbase (no captured example response exists in the community OpenAPI
+  spec); cross-referenced from two independently maintained community API
+  clients that agree on them (a Postman/OpenAPI catalog only confirmed the
+  path itself). Documented as a best guess in `types.ts` — verify against a
+  real league before trusting it for anything high-stakes.
 - [ ] **5.1** `packages/core` domain entities (Player, Squad, MarketListing) decoupled from transport
 - [ ] **5.2** `packages/market`: value-trend + winners/losers analysis over real data; expose as MCP tool
 - [ ] **5.3** `packages/reports`: first Market Report generated from 5.2; expose as MCP tool

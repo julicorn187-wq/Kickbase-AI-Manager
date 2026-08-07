@@ -8,6 +8,7 @@ function mockApiClient(overrides: Partial<KickbaseApiClient> = {}): KickbaseApiC
     getPlayerData: vi.fn(),
     getPlayerMarketValue: vi.fn(),
     getMySquad: vi.fn(),
+    getLeagueRanking: vi.fn(),
     makeOffer: vi.fn(),
     ...overrides,
   } as unknown as KickbaseApiClient;
@@ -94,6 +95,46 @@ describe("KickbaseService", () => {
 
     expect(text).toContain("Player One (ATT)");
     expect(text).toContain("Max players per team: 3");
+  });
+
+  it("formats the season ranking sorted by placement", async () => {
+    const apiClient = mockApiClient({
+      getLeagueRanking: vi.fn().mockResolvedValue({
+        us: [
+          { i: "u1", n: "User A", sp: 50, spl: 2 },
+          { i: "u2", n: "User B", sp: 80, spl: 1 },
+        ],
+      }),
+    });
+    const service = new KickbaseService(apiClient);
+
+    const text = await service.getLeagueRanking();
+
+    expect(text).toContain("League Ranking (Season)");
+    const lines = text.split("\n");
+    expect(lines[1]).toContain("User B");
+    expect(lines[2]).toContain("User A");
+  });
+
+  it("formats a matchday ranking using mdp/mdpl fields when dayNumber is given", async () => {
+    const getLeagueRanking = vi.fn().mockResolvedValue({
+      us: [{ i: "u1", n: "User A", mdp: 12, mdpl: 1 }],
+    });
+    const apiClient = mockApiClient({ getLeagueRanking });
+    const service = new KickbaseService(apiClient);
+
+    const text = await service.getLeagueRanking(5);
+
+    expect(getLeagueRanking).toHaveBeenCalledWith(5);
+    expect(text).toContain("Matchday 5");
+    expect(text).toContain("User A — 12 pts");
+  });
+
+  it("returns a friendly message when the ranking is empty", async () => {
+    const apiClient = mockApiClient({ getLeagueRanking: vi.fn().mockResolvedValue({ us: [] }) });
+    const service = new KickbaseService(apiClient);
+
+    expect(await service.getLeagueRanking()).toMatch(/no ranking data/i);
   });
 
   it("delegates makeOffer to the api client", async () => {

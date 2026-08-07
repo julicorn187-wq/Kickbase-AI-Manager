@@ -111,3 +111,35 @@ export interface SquadData {
   /** Max players allowed per real-world team in this league. */
   mppu: number;
 }
+
+/**
+ * A single manager's row in the league ranking table.
+ *
+ * Unlike the other types in this file, these field names are not backed by
+ * this project's own verified usage — Kickbase's league ranking endpoint has
+ * no publicly captured example response. Names below are cross-referenced
+ * from two independently maintained community API clients that agree on
+ * them (a JSON test fixture in one, a prioritized-key parser in the other).
+ * Treat as a documented best guess, not a confirmed contract.
+ */
+export interface LeagueRankingUser {
+  /** Manager/user id. */
+  i: string;
+  /** Manager display name. */
+  n: string;
+  /** Season-total points. Present for the overall ranking (no dayNumber). */
+  sp?: number;
+  /** Season-overall placement. Present for the overall ranking (no dayNumber). */
+  spl?: number;
+  /** Points for the requested matchday. Present when dayNumber is given. */
+  mdp?: number;
+  /** Placement for the requested matchday. Present when dayNumber is given. */
+  mdpl?: number;
+  /** Current team value, if present on this response. */
+  tv?: number;
+}
+
+export interface LeagueRankingData {
+  /** Ranking entries, one per manager in the league. */
+  us: LeagueRankingUser[];
+}
