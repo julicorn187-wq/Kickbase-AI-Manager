@@ -1,10 +1,13 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { KickbaseApiClient } from "@kickbase-ai-manager/kickbase-api";
+import { OpenLigaDbClient } from "@kickbase-ai-manager/openligadb";
 import { createLogger, type Logger } from "@kickbase-ai-manager/shared";
 import { KickbaseService } from "./kickbase.service.js";
+import { MatchupService } from "./matchup.service.js";
 import {
   registerAnalyzePlayerValueTool,
+  registerAnalyzeTeamMatchupTool,
   registerGetLeagueRankingTool,
   registerGetMySquadTool,
   registerGetPlayerInfoTool,
@@ -37,11 +40,12 @@ export class KickbaseMcpServer {
       logger: this.logger,
     });
     const kickbaseService = new KickbaseService(apiClient);
+    const matchupService = new MatchupService(new OpenLigaDbClient({ logger: this.logger }));
 
-    this.registerTools(kickbaseService);
+    this.registerTools(kickbaseService, matchupService);
   }
 
-  private registerTools(kickbaseService: KickbaseService): void {
+  private registerTools(kickbaseService: KickbaseService, matchupService: MatchupService): void {
     registerGetPlayerInfoTool(this.server, kickbaseService);
     registerListMarketTool(this.server, kickbaseService);
     registerMakeOfferTool(this.server, kickbaseService);
@@ -50,6 +54,7 @@ export class KickbaseMcpServer {
     registerAnalyzePlayerValueTool(this.server, kickbaseService);
     registerGetSquadValuationTool(this.server, kickbaseService);
     registerGetSquadReportTool(this.server, kickbaseService);
+    registerAnalyzeTeamMatchupTool(this.server, matchupService);
   }
 
   async start(): Promise<void> {

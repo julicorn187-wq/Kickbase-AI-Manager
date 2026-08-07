@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { KickbaseService } from "./kickbase.service.js";
+import type { MatchupService } from "./matchup.service.js";
 import { createTextResponse } from "./response-builder.js";
 
 export function registerGetPlayerInfoTool(server: McpServer, kickbaseService: KickbaseService): void {
@@ -111,6 +112,30 @@ export function registerGetLeagueRankingTool(server: McpServer, kickbaseService:
       inputSchema: { dayNumber: z.number().int().positive().optional() },
     },
     async ({ dayNumber }) => createTextResponse(await kickbaseService.getLeagueRanking(dayNumber)),
+  );
+}
+
+/**
+ * Read-only matchup analysis sourced from OpenLigaDB (a free, publicly
+ * documented football data API), not Kickbase's own API. teamName is
+ * matched loosely (e.g. "Bayern", "Dortmund") — the tool description tells
+ * the caller to pass whatever club name/short name it already knows for
+ * the player in question.
+ */
+export function registerAnalyzeTeamMatchupTool(server: McpServer, matchupService: MatchupService): void {
+  server.registerTool(
+    "analyze-kickbase-team-matchup",
+    {
+      title: "Analyze a Bundesliga club's form and fixture congestion",
+      description:
+        "Reports a club's recent form (last 5 results), upcoming Bundesliga fixtures, and " +
+        "whether it faces fixture congestion (2+ or 3+ matches within 7 days across the " +
+        "Bundesliga, DFB-Pokal, and European competitions) - useful for judging rotation/injury " +
+        "risk for a player from that club. Pass the club's common name or short name, e.g. " +
+        "\"Bayern\", \"Dortmund\", \"Leverkusen\". Sourced from OpenLigaDB, not Kickbase's API.",
+      inputSchema: { teamName: z.string() },
+    },
+    async ({ teamName }) => createTextResponse(await matchupService.getTeamMatchupAnalysis(teamName)),
   );
 }
 

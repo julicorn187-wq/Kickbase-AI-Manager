@@ -5,10 +5,11 @@
 > **analyzes, prioritizes, and supports decisions** like a professional sporting
 > director would.
 
-**Status:** 🚧 Early foundation. This repository currently contains the project
-scaffold, architecture decisions, and an autonomous work plan. Functional code is
-being migrated and hardened from the forked upstream (see below) iteration by
-iteration.
+**Status:** 🚧 Active development. The toolchain, the 4 ported-and-hardened upstream
+tools, and a first intelligence increment (fair-value analysis, squad valuation and
+reports, league ranking, matchup/fixture-congestion analysis) are built, tested, and
+verified (`pnpm install && pnpm typecheck && pnpm lint && pnpm test && pnpm build`
+all pass from a clean state). See [PLAN.md](PLAN.md) for exactly what's done vs. next.
 
 ---
 
@@ -40,12 +41,19 @@ for the full rationale and package boundaries.
 
 ```
 apps/            desktop, cli
-packages/        mcp-server, core, kickbase-api, analytics, scouting,
-                 transfers, optimizer, predictions, market, reports,
-                 scheduler, notifications, ai, shared
+packages/        mcp-server, kickbase-api, openligadb, market, analytics,
+                 fixtures, reports, shared
+                 (planned: core, scouting, transfers, optimizer, predictions,
+                 scheduler, notifications, ai — see PLAN.md)
 docs/            architecture decisions, analysis
 reference/       forked upstream source (to be migrated, do not edit in place)
 ```
+
+`packages/openligadb` is this project's second external data source, alongside
+`packages/kickbase-api`: a client for [OpenLigaDB](https://www.openligadb.de/), a
+free, publicly documented football data API used for fixtures, results, and form —
+data Kickbase's own API doesn't expose. `packages/fixtures` holds the analysis logic
+that runs on top of it (form curve, fixture-congestion detection).
 
 ## How this project is built
 
@@ -69,7 +77,7 @@ pnpm test
 
 ## MCP server & tools
 
-`packages/mcp-server` exposes eight tools via the Model Context Protocol. The four
+`packages/mcp-server` exposes nine tools via the Model Context Protocol. The four
 ported from the upstream fork are hardened (strict types, no `@ts-ignore`, typed
 errors, retry/timeout, and a confirmation guardrail on the money-affecting one);
 the rest are new:
@@ -83,6 +91,7 @@ the rest are new:
 | `get-kickbase-squad-report` | Squad valuation plus a Recommendations section: for declining-value or flagged players, suggests checking fair value and searching LigaInsider before deciding anything | None |
 | `get-kickbase-league-ranking` | League standings (name, points, placement); omit `dayNumber` for the season table or pass it for a single matchday | None |
 | `analyze-kickbase-player-value` | Estimates a fair value from market-value momentum and states up to what price a buy is reasonable; pass `consideredPrice` for an explicit BUY / TOO EXPENSIVE verdict. Transparent heuristic, not a guarantee — see [packages/market](packages/market/src/fair-value.ts). Points callers at a LigaInsider search for news the heuristic can't see | None |
+| `analyze-kickbase-team-matchup` | A club's recent form (last 5 results), next 3 Bundesliga fixtures, and fixture-congestion detection (2+/3+ matches within 7 days across Bundesliga/DFB-Pokal/European competitions) — rotation/injury risk context for a player from that club. Sourced from [OpenLigaDB](https://www.openligadb.de/), not Kickbase's API | None |
 | `make-kickbase-offer-for-player` | Places an offer on a player at a given price | **Budget-affecting.** Defaults to a dry run that only previews the offer; pass `confirm: true` to actually submit it (see [Guardrails](CLAUDE.md#guardrails-for-side-effecting-actions)) |
 
 ### Using it with Claude Desktop

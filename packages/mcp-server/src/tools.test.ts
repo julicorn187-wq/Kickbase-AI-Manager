@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   registerAnalyzePlayerValueTool,
+  registerAnalyzeTeamMatchupTool,
   registerGetLeagueRankingTool,
   registerGetMySquadTool,
   registerGetPlayerInfoTool,
@@ -11,6 +12,7 @@ import {
   registerMakeOfferTool,
 } from "./tools.js";
 import type { KickbaseService } from "./kickbase.service.js";
+import type { MatchupService } from "./matchup.service.js";
 
 interface TextResult {
   content: [{ type: "text"; text: string }];
@@ -32,7 +34,7 @@ function mockService(overrides: Partial<KickbaseService> = {}): KickbaseService 
   } as unknown as KickbaseService;
 }
 
-function captureHandler(register: (server: McpServer, service: KickbaseService) => void, service: KickbaseService): Handler {
+function captureHandler<S>(register: (server: McpServer, service: S) => void, service: S): Handler {
   let captured: Handler | undefined;
   const serverStub = {
     registerTool: (_name: string, _config: unknown, handler: Handler) => {
@@ -79,6 +81,26 @@ describe("registerGetMySquadTool", () => {
     const result = await handler({});
 
     expect(result.content[0].text).toBe("squad text");
+  });
+});
+
+function mockMatchupService(overrides: Partial<MatchupService> = {}): MatchupService {
+  return {
+    getTeamMatchupAnalysis: vi.fn(),
+    ...overrides,
+  } as unknown as MatchupService;
+}
+
+describe("registerAnalyzeTeamMatchupTool", () => {
+  it("passes teamName through and returns the formatted analysis", async () => {
+    const getTeamMatchupAnalysis = vi.fn().mockResolvedValue("Matchup analysis for FC Bayern München: ...");
+    const service = mockMatchupService({ getTeamMatchupAnalysis });
+    const handler = captureHandler(registerAnalyzeTeamMatchupTool, service);
+
+    const result = await handler({ teamName: "Bayern" });
+
+    expect(getTeamMatchupAnalysis).toHaveBeenCalledWith("Bayern");
+    expect(result.content[0].text).toContain("Matchup analysis");
   });
 });
 

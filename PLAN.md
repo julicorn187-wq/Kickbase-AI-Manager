@@ -90,13 +90,25 @@ mid-flight.
   (`firstName`/`marketValue` style, not this API's `fn`/`mv` style) turned up a plausible enum,
   but it comes from what looks like a different Kickbase API generation, so it is not trusted
   here; codes are surfaced raw. Exposed as `get-kickbase-squad-valuation`.
-- [!] **5.2c** Matchup/fixture analysis — blocked, not started. The community OpenAPI catalog
-  confirms `/v4/competitions/{competitionId}/matchdays` and the team-profile endpoint exist, but
-  neither has a captured example response anywhere I could find, and the most actively maintained
-  community client typed the matchday response as `any` — i.e. nobody has reliably documented its
-  fields. Building this would mean inventing field names, which this project's own rules forbid.
-  Unblocks if a maintainer supplies `KB_COOKIE`/`LEAGUE_ID` (via local `.env`, never pasted into
-  chat) so the real response can be inspected, or if better community docs surface.
+- [x] **5.2c** Matchup/fixture analysis — done 2026-08-07, via a different data source than
+  originally planned. Kickbase's own `/v4/competitions/{competitionId}/matchdays` endpoint was
+  (and remains) a dead end: no captured example response anywhere findable, and even the most
+  actively maintained community client types it as `any`. Building on it would have meant
+  inventing field names. Instead, added `packages/openligadb` — a client for
+  [OpenLigaDB](https://www.openligadb.de/), a free, *officially documented* football data API
+  (verified live: `GET /getmatchdata/bl1/2026` returns real fixtures with confirmed field names
+  `matchDateTime`, `team1`/`team2` {teamId, teamName, shortName}, `matchIsFinished`,
+  `matchResults`). `packages/fixtures` computes recent form (last 5 results), next-3-fixtures, and
+  fixture congestion (2+/3+ matches within 7 days, checked across the Bundesliga plus whatever
+  DFB-Pokal/Champions League/Europa League/Conference League season can be dynamically discovered
+  for the current year — competition shortcuts change every season in OpenLigaDB, so this is
+  looked up by name+season rather than hardcoded, and a competition that can't be found is skipped
+  rather than guessed). No betting-odds signal — the maintainer chose to ship without it rather
+  than require a paid/registered odds-API key; revisit if wanted later (odds-api.io and similar
+  have free tiers but need signup). Exposed as `analyze-kickbase-team-matchup(teamName)`; teamName
+  is matched loosely (contains-match against the club's full/short name) rather than
+  auto-resolved from a Kickbase player, since Kickbase's own team-name field format was never
+  confirmed against real data. Verified against the live API, not just mocks.
 - [x] **5.3** `packages/reports` — done 2026-08-07. `buildSquadReport` combines the squad
   valuation's declining-players and attention lists (5.2b) into a Recommendations section, each
   line pointing at `analyze-kickbase-player-value` (5.2) and/or a LigaInsider search (5.2a) rather
@@ -105,12 +117,21 @@ mid-flight.
   `get-kickbase-squad-report`. Kept to a single report for now (squad, not yet Daily/Matchday/
   Weekly/Market/Transfer per README's long-term vision) — thin end-to-end over breadth.
 - [x] **5.4** Document the analysis method so recommendations are traceable (no invented data) —
-  done for the fair-value heuristic, squad valuation, and the squad report (doc comments + PLAN
-  entries throughout this milestone); the 5.2c entry above is this same discipline applied to a
-  *decision not to build* something.
+  done for the fair-value heuristic, squad valuation, the squad report, and the matchup/congestion
+  analysis (doc comments + PLAN entries throughout this milestone). Milestone 5 is now complete:
+  every item is either done or explicitly, reasoned-out deferred (5.1 only).
 
 ## Backlog / later milestones
-- [ ] Feature packages: `analytics`, `scouting`, `predictions`, `transfers`, `optimizer`, `scheduler`, `notifications`, `ai`
+- [ ] `packages/core` domain entities — see 5.1's deferral note; revisit once a second package
+  needs to share domain types with `market`/`analytics`
+- [ ] Betting-odds signal for matchup analysis — needs a registered (free-tier) odds API key from
+  the maintainer, see 5.2c
+- [ ] Auto-resolve a Kickbase squad player to its OpenLigaDB team (currently `teamName` is a
+  manual/Claude-supplied input to `analyze-kickbase-team-matchup`) — blocked on confirming
+  Kickbase's actual `tn` field format against real data
+- [ ] Winners/losers-across-the-whole-market analysis (5.2's original full scope; only the
+  per-player half is built)
+- [ ] Feature packages: `scouting`, `predictions`, `transfers`, `optimizer`, `scheduler`, `notifications`, `ai`
 - [ ] `apps/desktop`
 - [ ] Automated report scheduling
 - [ ] Proactive agent (risk/opportunity detection, watchlist upkeep)

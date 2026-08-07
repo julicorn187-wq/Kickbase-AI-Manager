@@ -53,7 +53,22 @@ has no documented search endpoint to resolve one to the other. Instead,
 web search (Claude Desktop) can pull current news into the decision. Follow this
 pattern for any new buy/sell recommendation tool rather than adding a scraper.
 
-## Repository conventions
+## External data sources
+
+Kickbase's own v4 API is undocumented and reverse-engineered — treat any new
+endpoint on it with suspicion (see docs/upstream-analysis.md and PLAN.md's
+Milestone 5 entries for examples of fields that turned out unverifiable). When a
+capability needs data Kickbase doesn't expose, prefer a real, *officially
+documented* public API over guessing Kickbase's own undocumented fields or
+scraping a website:
+
+- **Fixtures, results, competition schedules:** `packages/openligadb`
+  ([openligadb.de](https://www.openligadb.de/)) — free, no key, Swagger-documented.
+  `packages/fixtures` holds the analysis on top (form curve, fixture congestion).
+- **News (injuries, lineups, market-value sentiment):** LigaInsider, via a search
+  query, not a scraper — see the section below.
+
+## LigaInsider (external news)
 
 - `reference/upstream/` is **read-only** — the verbatim fork, migrated piece by piece.
   Do not edit it in place.
