@@ -4,13 +4,7 @@
     "outDir": "./build",
     "rootDir": "./src"
   },
-  "references": [
-    { "path": "../analytics" },
-    { "path": "../kickbase-api" },
-    { "path": "../market" },
-    { "path": "../reports" },
-    { "path": "../shared" }
-  ],
+  "references": [{ "path": "../analytics" }, { "path": "../shared" }],
   "include": ["src/**/*"],
   "exclude": ["src/**/*.test.ts", "node_modules", "build"]
 }

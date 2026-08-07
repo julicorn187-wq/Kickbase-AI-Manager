@@ -56,6 +56,22 @@ export function registerGetSquadValuationTool(server: McpServer, kickbaseService
   );
 }
 
+export function registerGetSquadReportTool(server: McpServer, kickbaseService: KickbaseService): void {
+  server.registerTool(
+    "get-kickbase-squad-report",
+    {
+      title: "Get a squad report with recommendations",
+      description:
+        "The squad valuation plus a Recommendations section: for players that have lost market " +
+        "value since acquisition or carry a non-default status code, suggests checking their " +
+        "fair value and searching LigaInsider for context before deciding anything. Every " +
+        "recommendation is a 'go check X', not a decision made for you.",
+      inputSchema: {},
+    },
+    async () => createTextResponse(await kickbaseService.getSquadReport()),
+  );
+}
+
 /**
  * Read-only analysis tool: estimates a fair value for a player from their
  * current market value and 7-day trend, and states up to what price a buy

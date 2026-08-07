@@ -164,6 +164,71 @@ describe("KickbaseService", () => {
     expect(text).not.toContain("Fit Player: status");
   });
 
+  it("returns a friendly message for the squad report when the squad is empty", async () => {
+    const apiClient = mockApiClient({ getMySquad: vi.fn().mockResolvedValue({ it: [], mppu: 3 }) });
+    const service = new KickbaseService(apiClient);
+
+    expect(await service.getSquadReport()).toMatch(/squad is currently empty/i);
+  });
+
+  it("builds a squad report combining the valuation with recommendations", async () => {
+    const apiClient = mockApiClient({
+      getMySquad: vi.fn().mockResolvedValue({
+        it: [
+          {
+            ap: 5,
+            i: "1",
+            iotm: false,
+            lo: 0,
+            lst: 0,
+            mdst: 0,
+            mv: 1_000_000,
+            mvgl: 50_000,
+            mvt: 0,
+            n: "Fit Player",
+            ofc: 0,
+            p: 40,
+            pos: 4,
+            sdmvt: 0,
+            st: 0,
+            tfhmvt: 0,
+            tid: "team-1",
+          },
+          {
+            ap: 3,
+            i: "2",
+            iotm: false,
+            lo: 0,
+            lst: 0,
+            mdst: 0,
+            mv: 500_000,
+            mvgl: -10_000,
+            mvt: 0,
+            n: "Hurt Player",
+            ofc: 0,
+            p: 20,
+            pos: 2,
+            sdmvt: 0,
+            st: 1,
+            tfhmvt: 0,
+            tid: "team-2",
+          },
+        ],
+        mppu: 3,
+      }),
+    });
+    const service = new KickbaseService(apiClient);
+
+    const text = await service.getSquadReport();
+
+    expect(text).toContain("Squad valuation (2 players)");
+    expect(text).toContain("Recommendations:");
+    expect(text).toContain("Hurt Player has lost 10000 in value");
+    expect(text).toContain("Hurt Player has a non-default status code");
+    expect(text).toContain("site:ligainsider.de Hurt Player");
+    expect(text).not.toContain("Fit Player has lost");
+  });
+
   it("estimates a fair value and states a buy-up-to price", async () => {
     const apiClient = mockApiClient({
       getPlayerData: vi.fn().mockResolvedValue({

@@ -8,6 +8,7 @@ import {
   registerGetLeagueRankingTool,
   registerGetMySquadTool,
   registerGetPlayerInfoTool,
+  registerGetSquadReportTool,
   registerGetSquadValuationTool,
   registerListMarketTool,
   registerMakeOfferTool,
@@ -48,6 +49,7 @@ export class KickbaseMcpServer {
     registerGetLeagueRankingTool(this.server, kickbaseService);
     registerAnalyzePlayerValueTool(this.server, kickbaseService);
     registerGetSquadValuationTool(this.server, kickbaseService);
+    registerGetSquadReportTool(this.server, kickbaseService);
   }
 
   async start(): Promise<void> {

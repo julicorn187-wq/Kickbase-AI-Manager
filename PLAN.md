@@ -97,12 +97,17 @@ mid-flight.
   fields. Building this would mean inventing field names, which this project's own rules forbid.
   Unblocks if a maintainer supplies `KB_COOKIE`/`LEAGUE_ID` (via local `.env`, never pasted into
   chat) so the real response can be inspected, or if better community docs surface.
-- [ ] **5.3** `packages/reports`: first report bundling 5.2/5.2a/5.2b output into one readable
-  recommendation; expose as MCP tool
-- [~] **5.4** Document the analysis method so recommendations are traceable (no invented data) —
-  done for the fair-value heuristic and squad valuation (doc comments + PLAN entries above); the
-  5.2c entry above is this same discipline applied to a *decision not to build* something;
-  extend as 5.3 lands.
+- [x] **5.3** `packages/reports` — done 2026-08-07. `buildSquadReport` combines the squad
+  valuation's declining-players and attention lists (5.2b) into a Recommendations section, each
+  line pointing at `analyze-kickbase-player-value` (5.2) and/or a LigaInsider search (5.2a) rather
+  than deciding anything itself ("go check X", never "sell player Y") — matches the guardrail
+  principle applied one level up from the money-affecting tool itself. Exposed as
+  `get-kickbase-squad-report`. Kept to a single report for now (squad, not yet Daily/Matchday/
+  Weekly/Market/Transfer per README's long-term vision) — thin end-to-end over breadth.
+- [x] **5.4** Document the analysis method so recommendations are traceable (no invented data) —
+  done for the fair-value heuristic, squad valuation, and the squad report (doc comments + PLAN
+  entries throughout this milestone); the 5.2c entry above is this same discipline applied to a
+  *decision not to build* something.
 
 ## Backlog / later milestones
 - [ ] Feature packages: `analytics`, `scouting`, `predictions`, `transfers`, `optimizer`, `scheduler`, `notifications`, `ai`

@@ -5,6 +5,7 @@
     { "path": "./packages/kickbase-api" },
     { "path": "./packages/market" },
     { "path": "./packages/analytics" },
+    { "path": "./packages/reports" },
     { "path": "./packages/mcp-server" }
   ]
 }

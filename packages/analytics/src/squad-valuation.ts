@@ -35,6 +35,15 @@ export interface AttentionEntry {
   matchdayStatus: number;
 }
 
+export interface DecliningPlayerEntry {
+  id: string;
+  name: string;
+  marketValueGainLoss: number;
+}
+
+/** Cap on how many declining players to surface, worst first. */
+const MAX_DECLINING_PLAYERS = 5;
+
 export interface SquadValuation {
   playerCount: number;
   totalMarketValue: number;
@@ -44,6 +53,8 @@ export interface SquadValuation {
   positionBreakdown: PositionBreakdownEntry[];
   /** Players whose status or matchdayStatus is non-zero — worth a manual look. */
   playersNeedingAttention: AttentionEntry[];
+  /** Up to 5 players with the largest market-value loss since acquisition, worst first. */
+  decliningPlayers: DecliningPlayerEntry[];
 }
 
 /**
@@ -66,6 +77,11 @@ export function evaluateSquad(players: SquadValuationPlayerInput[]): SquadValuat
     playersNeedingAttention: players
       .filter((p) => p.status !== 0 || p.matchdayStatus !== 0)
       .map((p) => ({ id: p.id, name: p.name, status: p.status, matchdayStatus: p.matchdayStatus })),
+    decliningPlayers: players
+      .filter((p) => p.marketValueGainLoss < 0)
+      .sort((a, b) => a.marketValueGainLoss - b.marketValueGainLoss)
+      .slice(0, MAX_DECLINING_PLAYERS)
+      .map((p) => ({ id: p.id, name: p.name, marketValueGainLoss: p.marketValueGainLoss })),
   };
 }
 

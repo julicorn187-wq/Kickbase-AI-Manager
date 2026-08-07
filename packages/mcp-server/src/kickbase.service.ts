@@ -1,7 +1,8 @@
 import type { KickbaseApiClient, LeagueRankingUser } from "@kickbase-ai-manager/kickbase-api";
 import { PLAYER_POSITION } from "@kickbase-ai-manager/kickbase-api";
-import { evaluateSquad } from "@kickbase-ai-manager/analytics";
+import { evaluateSquad, type SquadValuation } from "@kickbase-ai-manager/analytics";
 import { computeMarketValueTrends, estimateFairValue } from "@kickbase-ai-manager/market";
+import { buildSquadReport } from "@kickbase-ai-manager/reports";
 import { buildLigaInsiderSearchQuery } from "@kickbase-ai-manager/shared";
 
 const DEFAULT_MARKET_LIMIT = 20;
@@ -89,13 +90,36 @@ export class KickbaseService {
    * exact meaning isn't confirmed for this API.
    */
   async getSquadValuation(): Promise<string> {
-    const data = await this.apiClient.getMySquad();
+    const valuation = await this.fetchSquadValuation();
+    return valuation === null ? "Your squad is currently empty." : this.formatSquadValuation(valuation);
+  }
 
-    if (data.it.length === 0) {
+  /**
+   * The squad valuation plus a Recommendations section turning the
+   * declining-value and attention-status lists into concrete next actions
+   * (check fair value, search LigaInsider). See
+   * packages/reports/src/squad-report.ts.
+   */
+  async getSquadReport(): Promise<string> {
+    const valuation = await this.fetchSquadValuation();
+    if (valuation === null) {
       return "Your squad is currently empty.";
     }
 
-    const valuation = evaluateSquad(
+    return buildSquadReport({
+      valuationSummaryText: this.formatSquadValuation(valuation),
+      decliningPlayers: valuation.decliningPlayers,
+      playersNeedingAttention: valuation.playersNeedingAttention,
+    });
+  }
+
+  private async fetchSquadValuation(): Promise<SquadValuation | null> {
+    const data = await this.apiClient.getMySquad();
+    if (data.it.length === 0) {
+      return null;
+    }
+
+    return evaluateSquad(
       data.it.map((player) => ({
         id: player.i,
         name: player.n,
@@ -108,7 +132,9 @@ export class KickbaseService {
         matchdayStatus: player.mdst,
       })),
     );
+  }
 
+  private formatSquadValuation(valuation: SquadValuation): string {
     const lines = [
       `Squad valuation (${valuation.playerCount} players):`,
       `Total market value: ${valuation.totalMarketValue}`,

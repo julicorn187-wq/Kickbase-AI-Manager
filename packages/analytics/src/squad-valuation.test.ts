@@ -63,4 +63,29 @@ describe("evaluateSquad", () => {
       { id: "3", name: "Bench Guy", status: 0, matchdayStatus: 2 },
     ]);
   });
+
+  it("lists declining players worst-first, excluding players with flat or rising value", () => {
+    const result = evaluateSquad([
+      player({ id: "1", name: "Rising", marketValueGainLoss: 10_000 }),
+      player({ id: "2", name: "Flat", marketValueGainLoss: 0 }),
+      player({ id: "3", name: "Slightly Down", marketValueGainLoss: -5_000 }),
+      player({ id: "4", name: "Way Down", marketValueGainLoss: -50_000 }),
+    ]);
+
+    expect(result.decliningPlayers).toEqual([
+      { id: "4", name: "Way Down", marketValueGainLoss: -50_000 },
+      { id: "3", name: "Slightly Down", marketValueGainLoss: -5_000 },
+    ]);
+  });
+
+  it("caps the declining players list at 5", () => {
+    const players = Array.from({ length: 8 }, (_, index) =>
+      player({ id: String(index), marketValueGainLoss: -(index + 1) * 1000 }),
+    );
+
+    const result = evaluateSquad(players);
+
+    expect(result.decliningPlayers).toHaveLength(5);
+    expect(result.decliningPlayers[0]?.marketValueGainLoss).toBe(-8000);
+  });
 });

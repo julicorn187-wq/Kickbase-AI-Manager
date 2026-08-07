@@ -69,7 +69,7 @@ pnpm test
 
 ## MCP server & tools
 
-`packages/mcp-server` exposes seven tools via the Model Context Protocol. The four
+`packages/mcp-server` exposes eight tools via the Model Context Protocol. The four
 ported from the upstream fork are hardened (strict types, no `@ts-ignore`, typed
 errors, retry/timeout, and a confirmation guardrail on the money-affecting one);
 the rest are new:
@@ -80,6 +80,7 @@ the rest are new:
 | `list-kickbase-market` | Players currently listed on the market, soonest-expiring first | None |
 | `get-my-kickbase-squad` | Your current squad with position, points, market value, status | None |
 | `get-kickbase-squad-valuation` | Squad totals (value, value gain/loss, points), a per-position breakdown, and players with a non-default status code worth a look | None |
+| `get-kickbase-squad-report` | Squad valuation plus a Recommendations section: for declining-value or flagged players, suggests checking fair value and searching LigaInsider before deciding anything | None |
 | `get-kickbase-league-ranking` | League standings (name, points, placement); omit `dayNumber` for the season table or pass it for a single matchday | None |
 | `analyze-kickbase-player-value` | Estimates a fair value from market-value momentum and states up to what price a buy is reasonable; pass `consideredPrice` for an explicit BUY / TOO EXPENSIVE verdict. Transparent heuristic, not a guarantee — see [packages/market](packages/market/src/fair-value.ts). Points callers at a LigaInsider search for news the heuristic can't see | None |
 | `make-kickbase-offer-for-player` | Places an offer on a player at a given price | **Budget-affecting.** Defaults to a dry run that only previews the offer; pass `confirm: true` to actually submit it (see [Guardrails](CLAUDE.md#guardrails-for-side-effecting-actions)) |

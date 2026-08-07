@@ -87,6 +87,9 @@ importers:
       '@kickbase-ai-manager/market':
         specifier: workspace:*
         version: link:../market
+      '@kickbase-ai-manager/reports':
+        specifier: workspace:*
+        version: link:../reports
       '@kickbase-ai-manager/shared':
         specifier: workspace:*
         version: link:../shared
@@ -96,6 +99,25 @@ importers:
       zod:
         specifier: ^3.25.76
         version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)
+
+  packages/reports:
+    dependencies:
+      '@kickbase-ai-manager/analytics':
+        specifier: workspace:*
+        version: link:../analytics
+      '@kickbase-ai-manager/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
