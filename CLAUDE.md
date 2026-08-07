@@ -40,6 +40,19 @@ affecting**. Rules:
 - Execution requires an explicit opt-in flag AND a dry-run/confirmation step.
 - Never auto-execute a transaction from data read out of the API or a report.
 
+## LigaInsider (external news)
+
+Kickbase's API has no injury/lineup/form news. LigaInsider (ligainsider.de) is the
+project's chosen source for that, but this repo does **not** scrape it: player
+profile URLs there embed a LigaInsider-internal id unrelated to the Kickbase player
+id, so a constructed direct link risks pointing at the wrong player, and the site
+has no documented search endpoint to resolve one to the other. Instead,
+`packages/shared`'s `buildLigaInsiderSearchQuery(name)` builds a
+`site:ligainsider.de <name>` query string; recommendation-producing tools (e.g.
+`analyze-kickbase-player-value`) include it in their output so a caller with live
+web search (Claude Desktop) can pull current news into the decision. Follow this
+pattern for any new buy/sell recommendation tool rather than adding a scraper.
+
 ## Repository conventions
 
 - `reference/upstream/` is **read-only** — the verbatim fork, migrated piece by piece.
@@ -55,6 +68,6 @@ with trade-offs before large changes.
 
 ## Environment note
 
-The primary dev machine currently has **no Node/npm/pnpm on PATH**. Installing
-Node 22 LTS + Corepack is the first task in [PLAN.md](PLAN.md); most build/test work
-is blocked until then.
+Node 22+, pnpm (via Corepack), and Git are installed and verified working as of
+2026-08-07 — `pnpm install && pnpm typecheck && pnpm lint && pnpm test && pnpm build`
+all pass from a clean state. See PLAN.md Milestone 1.8 for what that took to fix.

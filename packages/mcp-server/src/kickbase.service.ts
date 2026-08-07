@@ -1,6 +1,7 @@
 import type { KickbaseApiClient, LeagueRankingUser } from "@kickbase-ai-manager/kickbase-api";
 import { PLAYER_POSITION } from "@kickbase-ai-manager/kickbase-api";
 import { computeMarketValueTrends, estimateFairValue } from "@kickbase-ai-manager/market";
+import { buildLigaInsiderSearchQuery } from "@kickbase-ai-manager/shared";
 
 const DEFAULT_MARKET_LIMIT = 20;
 
@@ -141,6 +142,13 @@ export class KickbaseService {
       const verdict = consideredPrice <= estimate.fairValue ? "BUY" : "TOO EXPENSIVE";
       lines.push(`At a price of ${consideredPrice}: ${verdict} (fair value is ${estimate.fairValue}).`);
     }
+
+    lines.push(
+      `This estimate is based on market-value momentum only — it does not know about ` +
+        `injuries, lineup probability, or news. Before acting on it, search ` +
+        `"${buildLigaInsiderSearchQuery(`${playerData.fn} ${playerData.ln}`)}" for current ` +
+        `LigaInsider coverage and factor that in.`,
+    );
 
     return lines.join("\n");
   }
