@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
+  registerAnalyzePlayerValueTool,
   registerGetLeagueRankingTool,
   registerGetMySquadTool,
   registerGetPlayerInfoTool,
@@ -21,6 +22,7 @@ function mockService(overrides: Partial<KickbaseService> = {}): KickbaseService 
     getPlayerInformation: vi.fn(),
     getMySquad: vi.fn(),
     getLeagueRanking: vi.fn(),
+    getPlayerValueAnalysis: vi.fn(),
     makeOffer: vi.fn(),
     ...overrides,
   } as unknown as KickbaseService;
@@ -96,6 +98,29 @@ describe("registerGetLeagueRankingTool", () => {
     await handler({});
 
     expect(getLeagueRanking).toHaveBeenCalledWith(undefined);
+  });
+});
+
+describe("registerAnalyzePlayerValueTool", () => {
+  it("passes playerId and consideredPrice through to the service", async () => {
+    const getPlayerValueAnalysis = vi.fn().mockResolvedValue("fair value text");
+    const service = mockService({ getPlayerValueAnalysis });
+    const handler = captureHandler(registerAnalyzePlayerValueTool, service);
+
+    const result = await handler({ playerId: "42", consideredPrice: 900_000 });
+
+    expect(getPlayerValueAnalysis).toHaveBeenCalledWith("42", 900_000);
+    expect(result.content[0].text).toBe("fair value text");
+  });
+
+  it("passes undefined consideredPrice through when omitted", async () => {
+    const getPlayerValueAnalysis = vi.fn().mockResolvedValue("fair value text");
+    const service = mockService({ getPlayerValueAnalysis });
+    const handler = captureHandler(registerAnalyzePlayerValueTool, service);
+
+    await handler({ playerId: "42" });
+
+    expect(getPlayerValueAnalysis).toHaveBeenCalledWith("42", undefined);
   });
 });
 

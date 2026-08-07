@@ -1,16 +1,8 @@
-import type {
-  KickbaseApiClient,
-  LeagueRankingUser,
-  MarketValueData,
-} from "@kickbase-ai-manager/kickbase-api";
+import type { KickbaseApiClient, LeagueRankingUser } from "@kickbase-ai-manager/kickbase-api";
 import { PLAYER_POSITION } from "@kickbase-ai-manager/kickbase-api";
+import { computeMarketValueTrends, estimateFairValue } from "@kickbase-ai-manager/market";
 
 const DEFAULT_MARKET_LIMIT = 20;
-
-interface MarketValueTrends {
-  oneDayTrend: number;
-  sevenDayTrend: number;
-}
 
 const POSITION_NAMES: Record<number, string> = {
   [PLAYER_POSITION.GOALKEEPER]: "GK",
@@ -56,7 +48,9 @@ export class KickbaseService {
       .map((entry) => entry.p)
       .join(",");
 
-    const { oneDayTrend, sevenDayTrend } = this.calculateMarketValueTrends(marketValueData);
+    const { oneDayTrend, sevenDayTrend } = computeMarketValueTrends(
+      marketValueData.it.map((entry) => entry.mv),
+    );
 
     return (
       `name: ${playerData.fn} ${playerData.ln}, team: ${playerData.tn}, ` +
@@ -118,26 +112,40 @@ export class KickbaseService {
     };
   }
 
-  private getPositionName(pos: number): string {
-    return POSITION_NAMES[pos] ?? "Unknown";
+  /**
+   * Estimates a fair value for a player and states, in plain text, up to
+   * what price a buy is reasonable (or from what price a sell is). If
+   * consideredPrice is given, adds an explicit verdict for that price.
+   * See packages/market/src/fair-value.ts for the method and its caveats —
+   * this is a transparent heuristic, not a guarantee.
+   */
+  async getPlayerValueAnalysis(playerId: string, consideredPrice?: number): Promise<string> {
+    const [playerData, marketValueData] = await Promise.all([
+      this.apiClient.getPlayerData(playerId),
+      this.apiClient.getPlayerMarketValue(playerId),
+    ]);
+
+    const { sevenDayTrend } = computeMarketValueTrends(marketValueData.it.map((entry) => entry.mv));
+    const estimate = estimateFairValue(playerData.mv, sevenDayTrend);
+    const adjustmentPctText = `${estimate.adjustmentPct >= 0 ? "+" : ""}${(estimate.adjustmentPct * 100).toFixed(1)}%`;
+
+    const lines = [
+      `${playerData.fn} ${playerData.ln} (${playerData.tn})`,
+      `Current market value: ${playerData.mv}`,
+      `7-day market value trend: ${sevenDayTrend >= 0 ? "+" : ""}${sevenDayTrend}`,
+      `Estimated fair value: ${estimate.fairValue} (${adjustmentPctText} adjustment based on the trend, capped at +/-15%)`,
+      `Recommendation: a buy is reasonable up to ${estimate.fairValue}; a sell is reasonable from ${estimate.fairValue}.`,
+    ];
+
+    if (consideredPrice !== undefined) {
+      const verdict = consideredPrice <= estimate.fairValue ? "BUY" : "TOO EXPENSIVE";
+      lines.push(`At a price of ${consideredPrice}: ${verdict} (fair value is ${estimate.fairValue}).`);
+    }
+
+    return lines.join("\n");
   }
 
-  private calculateMarketValueTrends(marketValueData: MarketValueData): MarketValueTrends {
-    const entries = marketValueData.it.slice(-7);
-    if (entries.length < 2) {
-      return { oneDayTrend: 0, sevenDayTrend: 0 };
-    }
-
-    const last = entries[entries.length - 1];
-    const secondToLast = entries[entries.length - 2];
-    const first = entries[0];
-    if (!last || !secondToLast || !first) {
-      return { oneDayTrend: 0, sevenDayTrend: 0 };
-    }
-
-    return {
-      oneDayTrend: last.mv - secondToLast.mv,
-      sevenDayTrend: last.mv - first.mv,
-    };
+  private getPositionName(pos: number): string {
+    return POSITION_NAMES[pos] ?? "Unknown";
   }
 }

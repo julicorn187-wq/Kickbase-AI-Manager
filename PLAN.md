@@ -65,10 +65,21 @@ mid-flight.
   clients that agree on them (a Postman/OpenAPI catalog only confirmed the
   path itself). Documented as a best guess in `types.ts` — verify against a
   real league before trusting it for anything high-stakes.
-- [ ] **5.1** `packages/core` domain entities (Player, Squad, MarketListing) decoupled from transport
-- [ ] **5.2** `packages/market`: value-trend + winners/losers analysis over real data; expose as MCP tool
+- [!] **5.1** `packages/core` domain entities — deferred. Skipped in favor of building 5.2 thin
+  end-to-end first, per this milestone's own "pick one, build thin" framing; only one feature
+  package exists so far, so a shared decoupled-entity layer has no second consumer yet to justify
+  it. Revisit once a second feature package needs to share domain types with `market`.
+- [x] **5.2** `packages/market` — done 2026-08-07. Ships `computeMarketValueTrends` (moved out of
+  `kickbase.service.ts`, which duplicated it) and `estimateFairValue`: a documented, capped,
+  transparent heuristic (current market value nudged by a damped 7-day trend, +/-15% max) that
+  deliberately does not yet fold in point-performance as a second signal — see the doc comment in
+  `fair-value.ts` for why. Exposed as the `analyze-kickbase-player-value` MCP tool (states a
+  buy-up-to / sell-from price, plus an explicit BUY / TOO EXPENSIVE verdict for a given price).
+  Unit-tested (normal, capped, negative, zero-value-guard cases). Winners/losers-across-the-market
+  analysis is not built yet — this is the per-player half of 5.2, not the full scope.
 - [ ] **5.3** `packages/reports`: first Market Report generated from 5.2; expose as MCP tool
-- [ ] **5.4** Document the analysis method so recommendations are traceable (no invented data)
+- [~] **5.4** Document the analysis method so recommendations are traceable (no invented data) —
+  done for the fair-value heuristic (doc comments + PLAN entry above); extend as 5.3 lands.
 
 ## Backlog / later milestones
 - [ ] Feature packages: `analytics`, `scouting`, `predictions`, `transfers`, `optimizer`, `scheduler`, `notifications`, `ai`

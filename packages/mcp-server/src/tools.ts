@@ -40,6 +40,34 @@ export function registerGetMySquadTool(server: McpServer, kickbaseService: Kickb
   );
 }
 
+/**
+ * Read-only analysis tool: estimates a fair value for a player from their
+ * current market value and 7-day trend, and states up to what price a buy
+ * is reasonable. See KickbaseService.getPlayerValueAnalysis and
+ * packages/market/src/fair-value.ts for the method and its caveats.
+ */
+export function registerAnalyzePlayerValueTool(
+  server: McpServer,
+  kickbaseService: KickbaseService,
+): void {
+  server.registerTool(
+    "analyze-kickbase-player-value",
+    {
+      title: "Analyze a Kickbase player's fair value and buy/sell price",
+      description:
+        "Estimates a fair value for a player based on their current market value and 7-day " +
+        "value trend, and states up to what price a buy is reasonable (or from what price a " +
+        "sell is). Pass consideredPrice to get an explicit BUY / TOO EXPENSIVE verdict for a " +
+        "specific price, e.g. one seen on the market. This is a transparent heuristic based " +
+        "on market-value momentum only, not a guarantee — see the tool output for the exact " +
+        "trend and adjustment used.",
+      inputSchema: { playerId: z.string(), consideredPrice: z.number().positive().optional() },
+    },
+    async ({ playerId, consideredPrice }) =>
+      createTextResponse(await kickbaseService.getPlayerValueAnalysis(playerId, consideredPrice)),
+  );
+}
+
 export function registerGetLeagueRankingTool(server: McpServer, kickbaseService: KickbaseService): void {
   server.registerTool(
     "get-kickbase-league-ranking",

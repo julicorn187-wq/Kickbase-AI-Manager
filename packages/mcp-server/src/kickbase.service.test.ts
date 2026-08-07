@@ -97,6 +97,71 @@ describe("KickbaseService", () => {
     expect(text).toContain("Max players per team: 3");
   });
 
+  it("estimates a fair value and states a buy-up-to price", async () => {
+    const apiClient = mockApiClient({
+      getPlayerData: vi.fn().mockResolvedValue({
+        fn: "Max",
+        ln: "Muster",
+        tn: "FCB",
+        mv: 1_000_000,
+        tp: 100,
+        ap: 5,
+        ph: [],
+      }),
+      getPlayerMarketValue: vi.fn().mockResolvedValue({
+        it: [{ mv: 900_000 }, { mv: 1_000_000 }],
+      }),
+    });
+    const service = new KickbaseService(apiClient);
+
+    const text = await service.getPlayerValueAnalysis("1");
+
+    expect(text).toContain("Max Muster (FCB)");
+    expect(text).toContain("Current market value: 1000000");
+    expect(text).toContain("Estimated fair value: 1050000");
+    expect(text).toContain("buy is reasonable up to 1050000");
+  });
+
+  it("adds an explicit BUY verdict when consideredPrice is at or below the fair value", async () => {
+    const apiClient = mockApiClient({
+      getPlayerData: vi.fn().mockResolvedValue({
+        fn: "Max",
+        ln: "Muster",
+        tn: "FCB",
+        mv: 1_000_000,
+        tp: 100,
+        ap: 5,
+        ph: [],
+      }),
+      getPlayerMarketValue: vi.fn().mockResolvedValue({ it: [] }),
+    });
+    const service = new KickbaseService(apiClient);
+
+    const text = await service.getPlayerValueAnalysis("1", 900_000);
+
+    expect(text).toContain("At a price of 900000: BUY");
+  });
+
+  it("adds an explicit TOO EXPENSIVE verdict when consideredPrice exceeds the fair value", async () => {
+    const apiClient = mockApiClient({
+      getPlayerData: vi.fn().mockResolvedValue({
+        fn: "Max",
+        ln: "Muster",
+        tn: "FCB",
+        mv: 1_000_000,
+        tp: 100,
+        ap: 5,
+        ph: [],
+      }),
+      getPlayerMarketValue: vi.fn().mockResolvedValue({ it: [] }),
+    });
+    const service = new KickbaseService(apiClient);
+
+    const text = await service.getPlayerValueAnalysis("1", 1_500_000);
+
+    expect(text).toContain("At a price of 1500000: TOO EXPENSIVE");
+  });
+
   it("formats the season ranking sorted by placement", async () => {
     const apiClient = mockApiClient({
       getLeagueRanking: vi.fn().mockResolvedValue({
