@@ -436,3 +436,38 @@ mid-flight.
   Confirms this project's now-recurring lesson: real data beats proxies,
   and outside correction (the user's, twice now on this thread alone) finds
   real capabilities and real bugs that internal review didn't.
+- 2026-08-08 — Ran a proper walk-forward validation: 6 independent 3-matchday
+  backtests walking backward through the 2025/26 season (32-34, 29-31, 26-28,
+  23-25, 20-22, 17-19 — 18 matchdays total), all real Kickbase points via
+  BaseXI's per-player detail endpoint, per the maintainer's request to keep
+  learning across many backtests rather than judging the strategy from one
+  window.
+  - **Found and fixed a real recurring bug**: the diversification cap (script
+    logic at the time) let 3 starters from one club through in 5 of the 18
+    matchdays — the "guarantee 1 candidate per (team, position)" rescue meant
+    for the rare case a whole position was missing (e.g. no team's
+    goalkeeper survives the top-2-by-score cut) was instead firing for
+    almost every team with any position gap, multiplying into an extra
+    slot each time. Promoted the fix into real, tested production code as
+    `capCandidatesPerTeam` in `packages/predictions` (see the dedicated
+    commit): cap strictly per team first, only rescue a position **globally**
+    (once, for one team) if it would otherwise have zero candidates
+    anywhere in the whole pool.
+  - **Measured the real trade-off, didn't just assume the strictest cap is
+    best**: compared three variants across the same 18 matchdays —
+    uncapped/buggy (16103 real points, "great matchday" [≥100 real pts]
+    hit-rate 55%), strict cap of 2 (12389 points, hit-rate 63%, zero
+    concentration), and cap of 3 (15186 points, hit-rate 60%, occasional
+    but bounded 3-per-club concentration). A cap of 2 sacrifices ~23% of
+    real output to fully eliminate concentration; a cap of 3 recovers
+    almost all of that output (~94% of uncapped) while still meaningfully
+    bounding risk and improving the hit-rate over the buggy uncapped
+    version. Chose 3 as the evidence-backed default.
+  - **Wired the finding into the live tool**, not just the backtest script:
+    `forecast-kickbase-matchday-value-lineup` now runs
+    `capCandidatesPerTeam(scored, 3)` before building the suggested value-XI
+    (the top-N-per-position shortlist further down stays uncapped, so
+    alternatives are still visible). This is the first backtest finding
+    from this whole exercise that changed the *live* forecast tool's
+    behavior, not just the offline script.
+  Verified clean: typecheck, lint, 213/213 tests, and build all pass.

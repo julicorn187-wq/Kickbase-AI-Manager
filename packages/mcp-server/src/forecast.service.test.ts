@@ -97,13 +97,19 @@ describe("ForecastService", () => {
   });
 
   it("builds a suggested value-XI with the default formation", async () => {
+    // Distinct team names throughout - MAX_LINEUP_CANDIDATES_PER_TEAM would otherwise cap this
+    // artificial single-club roster down to a handful of candidates before the formation can fill.
     const players = [
-      player({ id: "gk", name: "Goalkeeper", position: "Torwart" }),
-      ...Array.from({ length: 5 }, (_, i) => player({ id: `def-${i}`, name: `Defender ${i}`, position: "Abwehr" })),
+      player({ id: "gk", name: "Goalkeeper", position: "Torwart", teamName: "Team GK" }),
       ...Array.from({ length: 5 }, (_, i) =>
-        player({ id: `mid-${i}`, name: `Midfielder ${i}`, position: "Mittelfeld" }),
+        player({ id: `def-${i}`, name: `Defender ${i}`, position: "Abwehr", teamName: `Team Def ${i}` }),
       ),
-      ...Array.from({ length: 3 }, (_, i) => player({ id: `fwd-${i}`, name: `Forward ${i}`, position: "Sturm" })),
+      ...Array.from({ length: 5 }, (_, i) =>
+        player({ id: `mid-${i}`, name: `Midfielder ${i}`, position: "Mittelfeld", teamName: `Team Mid ${i}` }),
+      ),
+      ...Array.from({ length: 3 }, (_, i) =>
+        player({ id: `fwd-${i}`, name: `Forward ${i}`, position: "Sturm", teamName: `Team Fwd ${i}` }),
+      ),
     ];
     const service = new ForecastService(mockBaseXiClient(players), mockOpenLigaClient());
 
@@ -191,6 +197,33 @@ describe("ForecastService", () => {
 
     expect(text).toContain("Starters facing fixture congestion");
     expect(text).toContain("Double fixture burden");
+  });
+
+  it("caps starters from one club so the value-XI can't over-concentrate", async () => {
+    // A single club with a strong Bundesliga matchup would otherwise dominate every slot it's
+    // eligible for - 5 of the 5 Abwehr candidates here are all from the same club.
+    const players = [
+      player({ id: "gk", name: "Goalkeeper", position: "Torwart", teamName: "Other Team" }),
+      ...Array.from({ length: 5 }, (_, i) =>
+        player({ id: `def-${i}`, name: `Defender ${i}`, position: "Abwehr", teamName: "Dominant FC" }),
+      ),
+      ...Array.from({ length: 4 }, (_, i) =>
+        player({ id: `mid-${i}`, name: `Midfielder ${i}`, position: "Mittelfeld", teamName: `Team Mid ${i}` }),
+      ),
+      ...Array.from({ length: 2 }, (_, i) =>
+        player({ id: `fwd-${i}`, name: `Forward ${i}`, position: "Sturm", teamName: `Team Fwd ${i}` }),
+      ),
+    ];
+    const service = new ForecastService(mockBaseXiClient(players), mockOpenLigaClient());
+
+    const text = await service.getMatchdayValueLineup();
+
+    // Isolate just the starters block (the "Top N per position" shortlist further down
+    // intentionally still shows the full, uncapped candidate list - only the suggested
+    // starting XI itself is capped).
+    const startersBlock = text.split("Suggested value-XI")[1]?.split("\n\n")[0] ?? "";
+    const dominantMentions = (startersBlock.match(/Dominant FC/g) ?? []).length;
+    expect(dominantMentions).toBeLessThanOrEqual(3);
   });
 
   describe("forecast logging", () => {

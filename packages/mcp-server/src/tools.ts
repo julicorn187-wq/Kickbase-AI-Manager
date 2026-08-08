@@ -208,7 +208,10 @@ export function registerForecastMatchdayValueLineupTool(server: McpServer, forec
         "away gets an away boost, not a home one) into a value-lineup shortlist: a suggested " +
         "value-XI, bench options, and a top-N-per-position list, each with a fully " +
         "disclosed rationale (see @kickbase-ai-manager/predictions for the exact scoring " +
-        "formula and its weights). Flags starters with a non-default BaseXI status (possible " +
+        "formula and its weights). Caps the suggested XI at 3 candidates per club (an 18-matchday " +
+        "real backtest across the 2025/26 season found this the best balance of output vs. " +
+        "correlated risk - see PLAN.md) - the top-N shortlist further down stays uncapped. Flags " +
+        "starters with a non-default BaseXI status (possible " +
         "injury/suspension/doubt) and fixture-congestion risk (Bundesliga + cup double/triple " +
         "gameweeks) separately, since playing-time certainty matters more than any stat - a " +
         "brilliant player on the bench scores zero. This is a ranking aid, not a points " +

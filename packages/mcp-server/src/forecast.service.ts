@@ -10,6 +10,7 @@ import {
 } from "@kickbase-ai-manager/fixtures";
 import {
   buildValueLineup,
+  capCandidatesPerTeam,
   computePlayerValueScore,
   parseImpliedProbabilities,
   type KickbasePosition,
@@ -27,6 +28,18 @@ import { collectSeasonTeams, fetchSeasonCupMatches, toTeamMatchInputs } from "./
 const DEFAULT_LOG_DIR = "./.kickbase-forecast-log";
 
 const KICKBASE_POSITIONS: readonly KickbasePosition[] = ["Torwart", "Abwehr", "Mittelfeld", "Sturm"];
+
+/**
+ * Cap on candidates per club fed into the value-XI builder — an 18-matchday
+ * real walk-forward backtest across the 2025/26 season (see PLAN.md) compared
+ * no cap (real points 16103, but frequent 3-7-per-club concentration), a
+ * strict cap of 2 (12389 real points, no concentration, but a real ~23% drop
+ * in output), and a cap of 3 (15186 real points, ~6% below uncapped, while
+ * still meaningfully bounding concentration and improving the "great
+ * matchday" ranking hit-rate from 55% to 60%). 3 was the best evidence-backed
+ * balance found, not an untested guess.
+ */
+const MAX_LINEUP_CANDIDATES_PER_TEAM = 3;
 
 function hasKickbasePosition(player: BaseXiPlayer): player is BaseXiPlayer & { position: KickbasePosition } {
   return (KICKBASE_POSITIONS as readonly string[]).includes(player.position);
@@ -63,7 +76,8 @@ export class ForecastService {
     const scored = eligible.map((player) =>
       this.scorePlayer(player, teamData, positionBaselines, positionAverageMarketValues),
     );
-    const lineup = buildValueLineup(scored);
+    const candidatePool = capCandidatesPerTeam(scored, MAX_LINEUP_CANDIDATES_PER_TEAM);
+    const lineup = buildValueLineup(candidatePool);
 
     await this.trySaveSnapshot(eligible, scored, lineup);
 
