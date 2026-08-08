@@ -266,3 +266,27 @@ mid-flight.
   reminds the caller to weigh such opinions critically against the
   disclosed scoring, not defer to them.
   Verified clean: typecheck, lint, 154/154 tests, and build all pass.
+- 2026-08-08 — Replaced the flat, universal home-advantage assumption with a
+  team-specific, season-measured one, per the maintainer's request to use
+  real evidence (not just odds) to find out which teams have a big home
+  advantage or are strong away. New `packages/fixtures/src/home-away-split.ts`:
+  `computeHomeAwaySplit` splits a team's WHOLE season (not the last-5 window
+  form-curve.ts/goal-stats.ts use) into home vs away records — points/game,
+  goal difference, clean sheets — from real OpenLigaDB results, not odds
+  (odds reflect pre-match expectation; realized results are the actual
+  fact). `packages/predictions/src/matchup-adjustment.ts`'s home/away
+  component now uses a team's own measured `homeAdvantageDelta` once both
+  home and away have at least 3 matches this season (`MIN_HOME_AWAY_SAMPLE`),
+  scaled and capped at ±10% (`TEAM_SPECIFIC_HOME_AWAY_SCALE`/`_CAP`) —
+  otherwise falls back to the old flat ±3% (`GENERIC_HOME_ADVANTAGE_PCT`)
+  with a rationale note saying why. `ForecastService` computes this once per
+  team from the same season-match fetch already used for form/goals, no new
+  API call.
+  Also investigated a "kicker.de or Futmob" odds request: kicker.de has no
+  documented odds API (only embedded bookmaker affiliate widgets — same
+  scraping/ToS problem as LigaInsider); `futmob.com` doesn't resolve with a
+  valid TLS certificate and refuses plain HTTP, so it couldn't be
+  investigated at all — asked the maintainer for the correct URL before
+  doing anything with it. Do not add a Futmob/kicker integration without a
+  verified, working URL and a robots.txt/ToS check first.
+  Verified clean: typecheck, lint, 164/164 tests, and build all pass.

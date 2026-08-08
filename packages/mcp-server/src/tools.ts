@@ -203,8 +203,10 @@ export function registerForecastMatchdayValueLineupTool(server: McpServer, forec
       title: "Forecast a value-lineup shortlist for the next Bundesliga matchday (opt-in)",
       description:
         "Combines BaseXI's real player data (points, price, next-match info) with OpenLigaDB's " +
-        "Bundesliga team form/goal-difference/clean-sheet record into a value-lineup shortlist: " +
-        "a suggested value-XI, bench options, and a top-N-per-position list, each with a fully " +
+        "Bundesliga team form/goal-difference/clean-sheet record and each team's own measured " +
+        "home/away split this season (not a flat assumption - a team that's actually stronger " +
+        "away gets an away boost, not a home one) into a value-lineup shortlist: a suggested " +
+        "value-XI, bench options, and a top-N-per-position list, each with a fully " +
         "disclosed rationale (see @kickbase-ai-manager/predictions for the exact scoring " +
         "formula and its weights). This is a ranking aid, not a points prediction or a " +
         "guaranteed lineup - it has no knowledge of your actual squad, budget, or confirmed " +

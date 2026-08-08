@@ -8,5 +8,7 @@ export type {
   KickbasePosition,
   PlayerScoreInput,
   PlayerValueScore,
+  SplitRecord,
+  TeamHomeAwaySplit,
   TeamStrengthInput,
 } from "./types.js";

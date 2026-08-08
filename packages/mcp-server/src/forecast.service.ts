@@ -1,6 +1,11 @@
 import type { BaseXiClient, BaseXiPlayer } from "@kickbase-ai-manager/basexi";
 import type { OpenLigaDbClient } from "@kickbase-ai-manager/openligadb";
-import { computeFormCurve, computeGoalStats, getCurrentBundesligaSeasonYear } from "@kickbase-ai-manager/fixtures";
+import {
+  computeFormCurve,
+  computeGoalStats,
+  computeHomeAwaySplit,
+  getCurrentBundesligaSeasonYear,
+} from "@kickbase-ai-manager/fixtures";
 import {
   buildValueLineup,
   computePlayerValueScore,
@@ -9,6 +14,7 @@ import {
   type LineupFormation,
   type PlayerScoreInput,
   type PlayerValueScore,
+  type TeamHomeAwaySplit,
   type TeamStrengthInput,
   type ValueLineup,
 } from "@kickbase-ai-manager/predictions";
@@ -37,30 +43,34 @@ export class ForecastService {
   ) {}
 
   async getMatchdayValueLineup(topPerPosition = 5): Promise<string> {
-    const [players, teamStrengthByName] = await Promise.all([
-      this.baseXiClient.getAllPlayers(),
-      this.buildTeamStrengthMap(),
-    ]);
+    const [players, teamData] = await Promise.all([this.baseXiClient.getAllPlayers(), this.buildTeamDataMaps()]);
 
     const eligible = players.filter(hasKickbasePosition);
     const positionBaselines = computePositionBaselines(eligible);
-    const scored = eligible.map((player) => this.scorePlayer(player, teamStrengthByName, positionBaselines));
+    const scored = eligible.map((player) => this.scorePlayer(player, teamData, positionBaselines));
     const lineup = buildValueLineup(scored);
 
     return formatReport(scored, lineup, topPerPosition);
   }
 
-  private async buildTeamStrengthMap(): Promise<Map<string, TeamStrengthInput>> {
+  private async buildTeamDataMaps(): Promise<TeamDataMaps> {
     const season = getCurrentBundesligaSeasonYear();
     const matches = await this.openLigaClient.getSeasonMatches("bl1", season);
     const teams = collectSeasonTeams(matches);
 
-    const map = new Map<string, TeamStrengthInput>();
+    const strengthByName = new Map<string, TeamStrengthInput>();
+    const homeAwaySplitByName = new Map<string, TeamHomeAwaySplit>();
+
     for (const team of teams) {
+      // Full season, unsliced — computeFormCurve/computeGoalStats slice to the last 5 themselves for
+      // recent-form purposes, while computeHomeAwaySplit deliberately looks at the whole season.
       const inputs = toTeamMatchInputs(matches, team, "Bundesliga");
       const form = computeFormCurve(inputs, 5);
       const goals = computeGoalStats(inputs, 5);
-      map.set(normalizeTeamName(team.teamName), {
+      const split = computeHomeAwaySplit(inputs);
+
+      const key = normalizeTeamName(team.teamName);
+      strengthByName.set(key, {
         teamName: team.teamName,
         matchesConsidered: goals.matchesConsidered,
         wins: form.wins,
@@ -70,20 +80,24 @@ export class ForecastService {
         goalsAgainst: goals.goalsAgainst,
         cleanSheets: goals.cleanSheets,
       });
+      homeAwaySplitByName.set(key, { teamName: team.teamName, ...split });
     }
-    return map;
+
+    return { strengthByName, homeAwaySplitByName };
   }
 
   private scorePlayer(
     player: BaseXiPlayer & { position: KickbasePosition },
-    teamStrengthByName: Map<string, TeamStrengthInput>,
+    teamData: TeamDataMaps,
     positionBaselines: Map<KickbasePosition, number>,
   ): PlayerValueScore {
     const { averagePoints, averagePointsSource, gamesConsidered } = resolveRawAverage(player);
 
-    const ownTeam = teamStrengthByName.get(normalizeTeamName(player.teamName));
+    const ownTeamKey = normalizeTeamName(player.teamName);
+    const ownTeam = teamData.strengthByName.get(ownTeamKey);
+    const ownTeamHomeAwaySplit = teamData.homeAwaySplitByName.get(ownTeamKey);
     const opponentTeam = player.match_data
-      ? teamStrengthByName.get(normalizeTeamName(player.match_data.next_opponent))
+      ? teamData.strengthByName.get(normalizeTeamName(player.match_data.next_opponent))
       : undefined;
     const oddsString = player.match_data?.odds ?? player.next_match?.odds;
     const impliedProbabilities = oddsString ? parseImpliedProbabilities(oddsString) : undefined;
@@ -100,6 +114,7 @@ export class ForecastService {
       gamesConsidered,
       ...(positionBaseline !== undefined && { positionBaseline }),
       ...(player.match_data && { isHome: player.match_data.home_game }),
+      ...(ownTeamHomeAwaySplit && { ownTeamHomeAwaySplit }),
       ...(ownTeam && { ownTeam }),
       ...(opponentTeam && { opponentTeam }),
       ...(impliedProbabilities && { impliedProbabilities }),
@@ -109,6 +124,11 @@ export class ForecastService {
 
     return computePlayerValueScore(input);
   }
+}
+
+interface TeamDataMaps {
+  strengthByName: Map<string, TeamStrengthInput>;
+  homeAwaySplitByName: Map<string, TeamHomeAwaySplit>;
 }
 
 interface RawAverage {

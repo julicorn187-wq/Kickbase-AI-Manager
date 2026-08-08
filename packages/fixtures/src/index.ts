@@ -1,5 +1,6 @@
 export { computeFormCurve, getUpcomingMatches, type FormCurve } from "./form-curve.js";
 export { computeFixtureCongestion, type CongestionWindow } from "./congestion.js";
 export { computeGoalStats, type GoalStats } from "./goal-stats.js";
+export { computeHomeAwaySplit, type HomeAwaySplit, type SplitRecord } from "./home-away-split.js";
 export { getCurrentBundesligaSeasonYear } from "./season.js";
 export type { TeamMatchInput } from "./types.js";

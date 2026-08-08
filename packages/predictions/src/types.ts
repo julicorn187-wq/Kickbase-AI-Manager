@@ -25,6 +25,33 @@ export interface TeamStrengthInput {
   cleanSheets: number;
 }
 
+/** One side (home or away) of a team's season-long split — mirrors fixtures' SplitRecord. */
+export interface SplitRecord {
+  matchesConsidered: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  pointsPerGame: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  cleanSheets: number;
+}
+
+/**
+ * A team's home vs away record across the whole season, as computed by
+ * @kickbase-ai-manager/fixtures' computeHomeAwaySplit — used to measure an
+ * actual, team-specific home-field advantage (or away strength) instead of
+ * assuming every team benefits from home advantage equally.
+ */
+export interface TeamHomeAwaySplit {
+  teamName: string;
+  home: SplitRecord;
+  away: SplitRecord;
+  /** home.pointsPerGame - away.pointsPerGame. Positive: stronger at home. Negative: stronger away. */
+  homeAdvantageDelta: number;
+}
+
 export interface PlayerScoreInput {
   id: string;
   name: string;
@@ -48,6 +75,13 @@ export interface PlayerScoreInput {
    */
   positionBaseline?: number;
   isHome?: boolean;
+  /**
+   * The player's team's own measured home/away split this season. When both
+   * sides have enough matches (see computeMatchupAdjustment), the home/away
+   * component of the adjustment uses this team-specific split instead of a
+   * generic flat assumption. Omit to always use the generic assumption.
+   */
+  ownTeamHomeAwaySplit?: TeamHomeAwaySplit;
   /** The player's team's recent record. Omit when no current-season matches have been played yet. */
   ownTeam?: TeamStrengthInput;
   /** The next opponent's recent record. Omit when no current-season matches have been played yet. */

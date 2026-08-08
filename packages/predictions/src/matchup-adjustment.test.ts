@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeMatchupAdjustment } from "./matchup-adjustment.js";
-import type { TeamStrengthInput } from "./types.js";
+import type { SplitRecord, TeamHomeAwaySplit, TeamStrengthInput } from "./types.js";
 
 function team(overrides: Partial<TeamStrengthInput> = {}): TeamStrengthInput {
   return {
@@ -12,6 +12,31 @@ function team(overrides: Partial<TeamStrengthInput> = {}): TeamStrengthInput {
     goalsFor: 10,
     goalsAgainst: 5,
     cleanSheets: 2,
+    ...overrides,
+  };
+}
+
+function splitRecord(overrides: Partial<SplitRecord> = {}): SplitRecord {
+  return {
+    matchesConsidered: 5,
+    wins: 3,
+    draws: 1,
+    losses: 1,
+    pointsPerGame: 2.0,
+    goalsFor: 10,
+    goalsAgainst: 5,
+    goalDifference: 5,
+    cleanSheets: 2,
+    ...overrides,
+  };
+}
+
+function homeAwaySplit(overrides: Partial<TeamHomeAwaySplit> = {}): TeamHomeAwaySplit {
+  return {
+    teamName: "FC Bayern München",
+    home: splitRecord({ pointsPerGame: 2.5 }),
+    away: splitRecord({ pointsPerGame: 1.0 }),
+    homeAdvantageDelta: 1.5,
     ...overrides,
   };
 }
@@ -75,6 +100,49 @@ describe("computeMatchupAdjustment", () => {
     const result = computeMatchupAdjustment({ position: "Sturm", ownTeam: noData, opponentTeam: noData });
     expect(result.adjustmentPct).toBe(0);
     expect(Number.isFinite(result.adjustmentPct)).toBe(true);
+  });
+
+  it("uses the generic home-advantage assumption when no team-specific split is supplied", () => {
+    const result = computeMatchupAdjustment({ position: "Sturm", isHome: true });
+    expect(result.rationale[0]).toMatch(/generic assumption/i);
+  });
+
+  it("uses the generic assumption when the team-specific split doesn't have enough matches yet", () => {
+    const thinSplit = homeAwaySplit({
+      home: splitRecord({ matchesConsidered: 1 }),
+      away: splitRecord({ matchesConsidered: 1 }),
+    });
+    const result = computeMatchupAdjustment({ position: "Sturm", isHome: true, ownTeamHomeAwaySplit: thinSplit });
+    expect(result.rationale[0]).toMatch(/generic assumption/i);
+  });
+
+  it("uses the team's own measured split once both sides have enough matches", () => {
+    const strongAtHome = homeAwaySplit({
+      home: splitRecord({ matchesConsidered: 5, pointsPerGame: 2.7 }),
+      away: splitRecord({ matchesConsidered: 5, pointsPerGame: 0.8 }),
+      homeAdvantageDelta: 1.9,
+    });
+
+    const atHome = computeMatchupAdjustment({ position: "Sturm", isHome: true, ownTeamHomeAwaySplit: strongAtHome });
+    const away = computeMatchupAdjustment({ position: "Sturm", isHome: false, ownTeamHomeAwaySplit: strongAtHome });
+
+    expect(atHome.rationale[0]).toMatch(/measured split this season/i);
+    expect(atHome.adjustmentPct).toBeGreaterThan(0);
+    expect(away.adjustmentPct).toBeLessThan(0);
+    // A team with a much bigger real split should get a bigger swing than the flat 3% generic assumption.
+    expect(atHome.adjustmentPct).toBeGreaterThan(0.03);
+  });
+
+  it("gives a team that's actually stronger away a negative home adjustment", () => {
+    const strongAway = homeAwaySplit({
+      home: splitRecord({ matchesConsidered: 5, pointsPerGame: 0.8 }),
+      away: splitRecord({ matchesConsidered: 5, pointsPerGame: 2.2 }),
+      homeAdvantageDelta: -1.4,
+    });
+
+    const atHome = computeMatchupAdjustment({ position: "Sturm", isHome: true, ownTeamHomeAwaySplit: strongAway });
+
+    expect(atHome.adjustmentPct).toBeLessThan(0);
   });
 
   it("caps the combined adjustment and notes the cap was applied", () => {
