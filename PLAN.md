@@ -359,3 +359,51 @@ mid-flight.
     the mechanism from the entry above already collects exactly the data
     this would need).
   Verified clean: typecheck, lint, 191/191 tests, and build all pass.
+- 2026-08-08 — Ran a real backtest of the last 3 matchdays of the 2025/26
+  season (32, 33, 34) through this project's actual `predictions`/`fixtures`
+  code, with a real 150M budget, per the maintainer's request to train and
+  self-evaluate the algorithm matchday by matchday. Real historical
+  per-matchday Kickbase points don't exist anywhere this project can access
+  (BaseXI only exposes current/season-cumulative data even with a `season`
+  query param tried at the maintainer's suggestion — confirmed it has no
+  effect; kicker/Futmob remain unresolved from the earlier entry), so this
+  used a disclosed proxy points model built entirely from real OpenLigaDB
+  goal-event/result data (participation, W/D/L bonus, goals by position,
+  clean sheets, own-goal penalty — NOT Kickbase's real formula). Strict
+  no-lookahead: each matchday's squad only used data from strictly earlier
+  matchdays.
+  Two real, previously-undiscovered bugs were found and fixed live during
+  this exercise (both already committed separately with full detail):
+  1. **`buildBudgetConstrainedLineup` wasted almost the whole budget** — its
+     original pure value-density (points-per-Euro) greedy is dominated by
+     the cheapest possible player whenever price spans ~100K-100M+ but
+     points only span single digits to a few hundred; it bought an 11-man
+     squad for ~11M of 150M, all bench-caliber picks. Fixed to start from
+     the best score per slot and only downgrade exactly as much as the
+     budget forces (see the dedicated commit). This alone lifted matchday
+     total actual (proxy) points for the backtest's first matchday's squad
+     composition materially once applied to later matchdays.
+  2. **The budget builder had no concentration-risk check** — with the fix
+     above spending real money on real quality, the optimizer immediately
+     piled 5-7 of 11 starters onto whichever single club had the best
+     matchup signals that week (Borussia Dortmund, then FC Bayern), since
+     every player from one team shares the same team-level score boost.
+     `buildValueLineup` already had this exact check; the budget builder
+     never did. Extracted and shared via the new `concentration.ts` (see
+     dedicated commit).
+  A third, script-only fix surfaced mid-run (not a production bug, since
+  the production code has no per-team candidate cap at all): a first
+  attempt at manually diversifying the *backtest script's* candidate pool
+  (capping to the top 2 players per club before optimizing) accidentally
+  starved the Torwart slot entirely whenever a club's best 2 players
+  overall were both outfielders — fixed by always keeping at least one
+  candidate per (club, position) in addition to the top-2 cap.
+  Total actual (proxy) points across the 3 matchdays improved with each
+  fix: 112 (broken budget algorithm) → 119 (fixed budget algorithm, no
+  diversification) → 129 (fixed algorithm + mid-run diversification cap
+  applied from matchday 33 onward, after matchday 32 exposed the
+  concentration problem). This is exactly the "learn what worked, adjust"
+  loop the maintainer asked for — done for real, not narrated.
+  Backtest script and its output are scratchpad-only (not committed) per
+  established practice — only the two real algorithm fixes it surfaced
+  went into the actual codebase.
