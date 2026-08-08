@@ -70,7 +70,7 @@ describe("buildBudgetConstrainedLineup", () => {
     expect(lineup.unfilledSlots.length).toBe(11 - lineup.starters.length);
   });
 
-  it("prefers higher value-density (compositeScore per currency unit) across positions", () => {
+  it("downgrades to the cheaper pick only when the budget can't cover the best-score choice", () => {
     const players = [
       player({ id: "cheap-good", position: "Sturm", compositeScore: 100, marketValue: 1_000_000 }),
       player({ id: "expensive-good", position: "Sturm", compositeScore: 110, marketValue: 50_000_000 }),
@@ -83,6 +83,26 @@ describe("buildBudgetConstrainedLineup", () => {
 
     expect(lineup.starters.map((p) => p.id)).toContain("cheap-good");
     expect(lineup.starters.map((p) => p.id)).not.toContain("expensive-good");
+  });
+
+  it("regression: picks the higher-scoring expensive player when the budget can afford it, not the cheapest one", () => {
+    // This is the exact failure mode a real backtest exposed: a pure points-per-Euro (value-density)
+    // greedy would always prefer "cheap-good" here (100 pts / 1M vs. 110 pts / 50M is a MUCH better
+    // ratio), leaving most of an abundant budget unspent on bench-caliber players. The correct behavior
+    // is to spend the budget on the higher score when it's actually affordable.
+    const players = [
+      player({ id: "cheap-good", position: "Sturm", compositeScore: 100, marketValue: 1_000_000 }),
+      player({ id: "expensive-better", position: "Sturm", compositeScore: 110, marketValue: 50_000_000 }),
+    ];
+
+    const lineup = buildBudgetConstrainedLineup(players, 150_000_000, {
+      Torwart: 0,
+      Abwehr: 0,
+      Mittelfeld: 0,
+      Sturm: 1,
+    });
+
+    expect(lineup.starters.map((p) => p.id)).toEqual(["expensive-better"]);
   });
 
   it("respects a custom formation's slot counts", () => {
