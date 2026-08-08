@@ -84,4 +84,17 @@ describe("computePlayerValueScore", () => {
     expect(result.shrunkAveragePoints).toBeGreaterThan(195);
     expect(result.rationale.some((r) => r.includes("shrunk toward"))).toBe(false);
   });
+
+  it("does not attach a differentiation hint when no positionAverageMarketValue is supplied", () => {
+    const result = computePlayerValueScore(input());
+    expect(result.differentiation).toBeUndefined();
+  });
+
+  it("attaches a differentiation hint without affecting compositeScore", () => {
+    const withoutHint = computePlayerValueScore(input());
+    const withHint = computePlayerValueScore(input({ positionAverageMarketValue: 20_000_000 }));
+
+    expect(withHint.compositeScore).toBe(withoutHint.compositeScore);
+    expect(withHint.differentiation?.label).toBe("template"); // 68M vs 20M average
+  });
 });

@@ -1,3 +1,4 @@
+import { computeDifferentiationHint } from "./differentiation.js";
 import { computeMatchupAdjustment } from "./matchup-adjustment.js";
 import { applyShrinkage } from "./shrinkage.js";
 import type { PlayerScoreInput, PlayerValueScore } from "./types.js";
@@ -39,6 +40,11 @@ export function computePlayerValueScore(input: PlayerScoreInput): PlayerValueSco
         ]
       : [];
 
+  const differentiation =
+    input.positionAverageMarketValue !== undefined
+      ? computeDifferentiationHint(input.marketValue, input.positionAverageMarketValue)
+      : undefined;
+
   return {
     id: input.id,
     name: input.name,
@@ -56,5 +62,6 @@ export function computePlayerValueScore(input: PlayerScoreInput): PlayerValueSco
     ...(input.baseXiNextMatchDifficulty !== undefined && {
       baseXiNextMatchDifficulty: input.baseXiNextMatchDifficulty,
     }),
+    ...(differentiation !== undefined && { differentiation }),
   };
 }

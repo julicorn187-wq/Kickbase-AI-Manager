@@ -8,6 +8,7 @@ async function main(): Promise<void> {
     token: env.KB_TOKEN,
     leagueId: env.LEAGUE_ID,
     enableBaseXi: env.ENABLE_BASEXI,
+    ...(env.FORECAST_LOG_DIR !== undefined && { forecastLogDir: env.FORECAST_LOG_DIR }),
   });
   await server.start();
 }

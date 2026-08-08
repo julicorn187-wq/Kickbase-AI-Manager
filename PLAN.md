@@ -290,3 +290,34 @@ mid-flight.
   doing anything with it. Do not add a Futmob/kicker integration without a
   verified, working URL and a robots.txt/ToS check first.
   Verified clean: typecheck, lint, 164/164 tests, and build all pass.
+- 2026-08-08 — Added a real feedback loop and a winner-take-all-aware
+  scoring hint, per the maintainer's request that the forecast keep learning
+  what works and account for this league's format: only the matchday
+  winner counts, 2nd and last are equally "losers" (structurally a
+  winner-take-all tournament, not a points-accumulation contest — the
+  DFS/GPP-strategy distinction: maximize expected points in a cash game,
+  but separate from the field in a winner-take-all one).
+  - `packages/predictions/src/differentiation.ts`: `computeDifferentiationHint`
+    labels a player "template" (priced ≥1.3x the position average — probably
+    widely owned, so a good score doesn't separate you from the field) or
+    "differential" (priced ≤0.7x — more likely unique). marketValue is a
+    proxy for ownership since this project has no real ownership data for
+    the other 11 managers; surfaced separately, never folded into
+    compositeScore, same treatment as BaseXI's momentum/difficulty.
+  - `packages/mcp-server/src/forecast-log.ts`: the actual "learn what
+    works" mechanism. Every `forecast-kickbase-matchday-value-lineup` call
+    now logs a snapshot (predicted score, starter/bench status, and each
+    player's BaseXI totalPoints/matchesPlayed AT FORECAST TIME) to
+    `FORECAST_LOG_DIR` (default `./.kickbase-forecast-log`, git-ignored).
+    New opt-in tool `review-kickbase-forecast-accuracy` diffs a snapshot's
+    players against their current BaseXI totals once matchesPlayed has
+    ticked up by exactly 1 (the only honest way to isolate one matchday's
+    points from BaseXI's season-cumulative fields — a delta of 0 means not
+    played yet, >1 means matchdays were skipped and that player is excluded
+    rather than mislabeled), and reports per-position starter hit-rate plus
+    real points scored. Deliberately does NOT auto-adjust any scoring
+    weight — every real formula change in this project is a reviewed code
+    change with a changelog entry (see the last several entries above), not
+    silent drift from an opaque self-tuning loop, which would be its own
+    kind of invented precision given how few matchdays a season has.
+  Verified clean: typecheck, lint, 187/187 tests, and build all pass.

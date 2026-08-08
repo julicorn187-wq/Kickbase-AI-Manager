@@ -21,6 +21,7 @@ import {
   registerGetSquadValuationTool,
   registerListMarketTool,
   registerMakeOfferTool,
+  registerReviewForecastAccuracyTool,
 } from "./tools.js";
 
 export interface KickbaseMcpServerOptions {
@@ -34,6 +35,8 @@ export interface KickbaseMcpServerOptions {
    * opts in for their own personal use via the ENABLE_BASEXI env var.
    */
   enableBaseXi?: boolean;
+  /** Where the matchday forecast tool logs predictions — see forecast-log.ts. Defaults to ./.kickbase-forecast-log. */
+  forecastLogDir?: string;
 }
 
 export class KickbaseMcpServer {
@@ -65,7 +68,10 @@ export class KickbaseMcpServer {
       );
       const baseXiClient = new BaseXiClient({ logger: this.logger });
       baseXiService = new BaseXiService(baseXiClient);
-      forecastService = new ForecastService(baseXiClient, openLigaClient);
+      forecastService = new ForecastService(baseXiClient, openLigaClient, {
+        logger: this.logger,
+        ...(options.forecastLogDir !== undefined && { logDir: options.forecastLogDir }),
+      });
     }
 
     this.registerTools(kickbaseService, matchupService, baseXiService, forecastService);
@@ -92,6 +98,7 @@ export class KickbaseMcpServer {
     }
     if (forecastService) {
       registerForecastMatchdayValueLineupTool(this.server, forecastService);
+      registerReviewForecastAccuracyTool(this.server, forecastService);
     }
   }
 

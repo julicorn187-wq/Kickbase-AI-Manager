@@ -18,8 +18,11 @@ import {
   type TeamStrengthInput,
   type ValueLineup,
 } from "@kickbase-ai-manager/predictions";
-import { buildLigaInsiderSearchQuery } from "@kickbase-ai-manager/shared";
+import { buildLigaInsiderSearchQuery, createLogger, type Logger } from "@kickbase-ai-manager/shared";
+import { buildForecastSnapshot, resolveMatchdayNumber, reviewForecastAccuracy, saveForecastSnapshot } from "./forecast-log.js";
 import { collectSeasonTeams, toTeamMatchInputs } from "./matchup.service.js";
+
+const DEFAULT_LOG_DIR = "./.kickbase-forecast-log";
 
 const KICKBASE_POSITIONS: readonly KickbasePosition[] = ["Torwart", "Abwehr", "Mittelfeld", "Sturm"];
 
@@ -37,20 +40,65 @@ function hasKickbasePosition(player: BaseXiPlayer): player is BaseXiPlayer & { p
  * BaseXiService) — see KickbaseMcpServer.
  */
 export class ForecastService {
+  private readonly logger: Logger;
+  private readonly logDir: string;
+
   constructor(
     private readonly baseXiClient: BaseXiClient,
     private readonly openLigaClient: OpenLigaDbClient,
-  ) {}
+    options: { logger?: Logger; logDir?: string } = {},
+  ) {
+    this.logger = options.logger ?? createLogger();
+    this.logDir = options.logDir ?? DEFAULT_LOG_DIR;
+  }
 
   async getMatchdayValueLineup(topPerPosition = 5): Promise<string> {
     const [players, teamData] = await Promise.all([this.baseXiClient.getAllPlayers(), this.buildTeamDataMaps()]);
 
     const eligible = players.filter(hasKickbasePosition);
     const positionBaselines = computePositionBaselines(eligible);
-    const scored = eligible.map((player) => this.scorePlayer(player, teamData, positionBaselines));
+    const positionAverageMarketValues = computePositionAverageMarketValues(eligible);
+    const scored = eligible.map((player) =>
+      this.scorePlayer(player, teamData, positionBaselines, positionAverageMarketValues),
+    );
     const lineup = buildValueLineup(scored);
 
+    await this.trySaveSnapshot(eligible, scored, lineup);
+
     return formatReport(scored, lineup, topPerPosition);
+  }
+
+  /**
+   * Logs this forecast to disk so review-kickbase-forecast-accuracy can
+   * later diff it against real outcomes — see forecast-log.ts. Best-effort:
+   * a logging failure (e.g. no write permission) must never break the
+   * actual forecast response.
+   */
+  private async trySaveSnapshot(
+    eligible: (BaseXiPlayer & { position: KickbasePosition })[],
+    scored: PlayerValueScore[],
+    lineup: ValueLineup,
+  ): Promise<void> {
+    const matchday = resolveMatchdayNumber(eligible);
+    if (matchday === undefined) {
+      this.logger.debug("skipping forecast snapshot: no matchday could be resolved from BaseXI data");
+      return;
+    }
+
+    const rawById = new Map(eligible.map((p) => [p.id, { totalPoints: p.totalPoints, matchesPlayed: p.matchesPlayed }]));
+    const snapshot = buildForecastSnapshot(matchday, scored, lineup, rawById);
+
+    try {
+      await saveForecastSnapshot(this.logDir, snapshot);
+    } catch (error) {
+      this.logger.warn("failed to save forecast snapshot", { error: String(error) });
+    }
+  }
+
+  /** Reviews every logged forecast whose matchday has since been played — see forecast-log.ts. */
+  async getForecastAccuracyReview(): Promise<string> {
+    const players = await this.baseXiClient.getAllPlayers();
+    return reviewForecastAccuracy(this.logDir, players);
   }
 
   private async buildTeamDataMaps(): Promise<TeamDataMaps> {
@@ -90,6 +138,7 @@ export class ForecastService {
     player: BaseXiPlayer & { position: KickbasePosition },
     teamData: TeamDataMaps,
     positionBaselines: Map<KickbasePosition, number>,
+    positionAverageMarketValues: Map<KickbasePosition, number>,
   ): PlayerValueScore {
     const { averagePoints, averagePointsSource, gamesConsidered } = resolveRawAverage(player);
 
@@ -102,6 +151,7 @@ export class ForecastService {
     const oddsString = player.match_data?.odds ?? player.next_match?.odds;
     const impliedProbabilities = oddsString ? parseImpliedProbabilities(oddsString) : undefined;
     const positionBaseline = positionBaselines.get(player.position);
+    const positionAverageMarketValue = positionAverageMarketValues.get(player.position);
 
     const input: PlayerScoreInput = {
       id: player.id,
@@ -113,6 +163,7 @@ export class ForecastService {
       averagePointsSource,
       gamesConsidered,
       ...(positionBaseline !== undefined && { positionBaseline }),
+      ...(positionAverageMarketValue !== undefined && { positionAverageMarketValue }),
       ...(player.match_data && { isHome: player.match_data.home_game }),
       ...(ownTeamHomeAwaySplit && { ownTeamHomeAwaySplit }),
       ...(ownTeam && { ownTeam }),
@@ -172,12 +223,44 @@ function computePositionBaselines(
   return baselines;
 }
 
+/**
+ * The average marketValue across all eligible players at each position —
+ * the denominator computeDifferentiationHint uses to flag a player as an
+ * unusually expensive ("template") or unusually cheap ("differential") pick
+ * relative to their peers. See differentiation.ts for why this matters in a
+ * winner-take-all matchday format.
+ */
+function computePositionAverageMarketValues(
+  players: (BaseXiPlayer & { position: KickbasePosition })[],
+): Map<KickbasePosition, number> {
+  const sumsByPosition = new Map<KickbasePosition, { total: number; count: number }>();
+
+  for (const player of players) {
+    const bucket = sumsByPosition.get(player.position) ?? { total: 0, count: 0 };
+    bucket.total += player.marketValue;
+    bucket.count += 1;
+    sumsByPosition.set(player.position, bucket);
+  }
+
+  const averages = new Map<KickbasePosition, number>();
+  for (const [position, { total, count }] of sumsByPosition) {
+    if (count > 0) averages.set(position, total / count);
+  }
+  return averages;
+}
+
 function formatReport(scored: PlayerValueScore[], lineup: ValueLineup, topPerPosition: number): string {
   const lines: string[] = [
     "Matchday value-lineup forecast — BaseXI (real Kickbase data, opt-in) + OpenLigaDB team form, " +
       "combined by a fully disclosed heuristic (see rationale per player, and " +
       "@kickbase-ai-manager/predictions for the formula). This is NOT a points prediction or a " +
       "guarantee — it's an ordinal ranking aid.",
+    "",
+    "This league is winner-take-all per matchday (2nd and last both count as losing) — a good score " +
+      "from a widely-owned player doesn't separate you from the field the way the same score from a " +
+      "less obvious pick does. Each player below has a 'template'/'differential'/'neutral' price-based " +
+      "hint for exactly this reason (see differentiation notes) — it's a proxy from price, not real " +
+      "ownership data, so weigh it, don't follow it blindly.",
     "",
   ];
 
@@ -234,9 +317,10 @@ function formatPlayerLine(player: PlayerValueScore): string {
     player.baseXiNextMatchDifficulty !== undefined ? `, BaseXI difficulty: ${String(player.baseXiNextMatchDifficulty)}` : "";
   const shrunk =
     player.shrunkAveragePoints !== undefined ? `, shrunk: ${player.shrunkAveragePoints.toFixed(1)}` : "";
+  const differentiation = player.differentiation ? `, ${player.differentiation.label}` : "";
   return (
     `${player.name} (${player.position}, ${player.teamName}) — score ${player.compositeScore.toFixed(1)} ` +
-    `[${player.averagePointsSource}, ${String(player.gamesConsidered)}g${shrunk}, adj ${formatPct(player.adjustmentPct)}${momentum}${difficulty}]`
+    `[${player.averagePointsSource}, ${String(player.gamesConsidered)}g${shrunk}, adj ${formatPct(player.adjustmentPct)}${momentum}${difficulty}${differentiation}]`
   );
 }
 

@@ -1,5 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ForecastService } from "./forecast.service.js";
+import { loadPendingSnapshots } from "./forecast-log.js";
 import type { BaseXiClient, BaseXiPlayer } from "@kickbase-ai-manager/basexi";
 import type { OpenLigaDbClient, OpenLigaMatch } from "@kickbase-ai-manager/openligadb";
 
@@ -131,5 +135,54 @@ describe("ForecastService", () => {
     const text = await service.getMatchdayValueLineup();
 
     expect(text).toContain("site:ligainsider.de Harry Kane");
+  });
+
+  it("mentions the winner-take-all differentiation framing", async () => {
+    const service = new ForecastService(mockBaseXiClient([player()]), mockOpenLigaClient());
+
+    const text = await service.getMatchdayValueLineup();
+
+    expect(text).toMatch(/winner-take-all/i);
+  });
+
+  describe("forecast logging", () => {
+    let logDir: string;
+
+    beforeEach(async () => {
+      logDir = await mkdtemp(path.join(tmpdir(), "kickbase-forecast-service-log-"));
+    });
+
+    afterEach(async () => {
+      await rm(logDir, { recursive: true, force: true });
+    });
+
+    it("saves a forecast snapshot when a matchday can be resolved from BaseXI data", async () => {
+      const nextMatch = { date: "01.09.", date_iso: "2026-09-01T13:30:00", matchday: 1, home_game: true, difficulty: 2, odds: "- | - | -" };
+      const service = new ForecastService(mockBaseXiClient([player({ next_match: nextMatch })]), mockOpenLigaClient(), {
+        logDir,
+      });
+
+      await service.getMatchdayValueLineup();
+
+      const pending = await loadPendingSnapshots(logDir);
+      expect(pending).toHaveLength(1);
+      expect(pending[0]?.matchday).toBe(1);
+    });
+
+    it("does not save a snapshot when no matchday can be resolved (next_match is null)", async () => {
+      const service = new ForecastService(mockBaseXiClient([player()]), mockOpenLigaClient(), { logDir });
+
+      await service.getMatchdayValueLineup();
+
+      expect(await loadPendingSnapshots(logDir)).toHaveLength(0);
+    });
+
+    it("getForecastAccuracyReview reports nothing logged yet for an empty log dir", async () => {
+      const service = new ForecastService(mockBaseXiClient([player()]), mockOpenLigaClient(), { logDir });
+
+      const report = await service.getForecastAccuracyReview();
+
+      expect(report).toMatch(/no forecasts logged yet/i);
+    });
   });
 });

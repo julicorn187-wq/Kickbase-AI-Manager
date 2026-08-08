@@ -222,6 +222,36 @@ export function registerForecastMatchdayValueLineupTool(server: McpServer, forec
 }
 
 /**
+ * Opt-in only, same gate as forecast-kickbase-matchday-value-lineup — the
+ * concrete "learn what works" mechanism: every forecast call logs a
+ * snapshot (packages/mcp-server/src/forecast-log.ts); this diffs a past
+ * snapshot's players against their current BaseXI totals once that
+ * matchday has actually been played, and reports how the suggested picks
+ * did. Never auto-adjusts the scoring formula - any real change to
+ * @kickbase-ai-manager/predictions is a reviewed code change, not silent
+ * drift from this report.
+ */
+export function registerReviewForecastAccuracyTool(server: McpServer, forecastService: ForecastService): void {
+  server.registerTool(
+    "review-kickbase-forecast-accuracy",
+    {
+      title: "Review how past matchday forecasts actually did (opt-in)",
+      description:
+        "Diffs every previously logged forecast-kickbase-matchday-value-lineup prediction whose " +
+        "matchday has since been played against real BaseXI point totals, and reports per-position " +
+        "hit rate (were the suggested starters actually among the top scorers at their position?) " +
+        "plus every player's actual points. Nothing is invented: a player is skipped with a stated " +
+        "reason if the matchday hasn't been played yet or if the diff would blend multiple " +
+        "matchdays. Does not change any scoring weight itself - use the report to decide whether " +
+        "@kickbase-ai-manager/predictions needs a deliberate adjustment. Only available because you " +
+        "explicitly enabled BaseXI (ENABLE_BASEXI=true).",
+      inputSchema: {},
+    },
+    async () => createTextResponse(await forecastService.getForecastAccuracyReview()),
+  );
+}
+
+/**
  * make-offer is budget- and standing-affecting (see CLAUDE.md guardrails).
  * Default is a dry run that echoes back exactly what would happen; the
  * transaction only executes when the caller explicitly passes confirm: true.

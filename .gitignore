@@ -14,10 +14,13 @@ dist/
 coverage/
 .vitest/
 
-# Env & secrets — NEVER commit the Kickbase session cookie
+# Env & secrets — NEVER commit the Kickbase auth token
 .env
 .env.*
 !.env.example
+
+# Local forecast prediction log (see packages/mcp-server/src/forecast-log.ts) — personal runtime state, not source
+.kickbase-forecast-log/
 
 # Editor / OS
 .DS_Store

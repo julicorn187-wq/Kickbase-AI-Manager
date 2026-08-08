@@ -4,6 +4,7 @@
  * this package's scoring logic is testable without a dependency on either —
  * same pattern as packages/analytics/src/squad-valuation.ts.
  */
+import type { DifferentiationHint } from "./differentiation.js";
 
 export type KickbasePosition = "Torwart" | "Abwehr" | "Mittelfeld" | "Sturm";
 
@@ -74,6 +75,13 @@ export interface PlayerScoreInput {
    * Omit to skip shrinkage entirely and score the raw average as-is.
    */
   positionBaseline?: number;
+  /**
+   * Average marketValue across all eligible players at the same position.
+   * When supplied, used to compute a differentiation hint (see
+   * differentiation.ts) — surfaced separately from compositeScore, never
+   * folded into it, since it's a proxy for ownership, not a measured fact.
+   */
+  positionAverageMarketValue?: number;
   isHome?: boolean;
   /**
    * The player's team's own measured home/away split this season. When both
@@ -127,4 +135,6 @@ export interface PlayerValueScore {
   rationale: string[];
   baseXiMomentum?: string;
   baseXiNextMatchDifficulty?: number;
+  /** Present only when positionAverageMarketValue was supplied — see differentiation.ts. Informational only, not scored. */
+  differentiation?: DifferentiationHint;
 }

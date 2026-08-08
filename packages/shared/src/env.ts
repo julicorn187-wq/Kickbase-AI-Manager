@@ -19,6 +19,13 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((v) => v === "true"),
+  /**
+   * Directory the opt-in matchday forecast tool logs its predictions to, so
+   * a later run can diff them against real results (see
+   * packages/mcp-server/src/forecast-log.ts). Defaults to
+   * ./.kickbase-forecast-log when unset.
+   */
+  FORECAST_LOG_DIR: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
