@@ -407,3 +407,32 @@ mid-flight.
   Backtest script and its output are scratchpad-only (not committed) per
   established practice — only the two real algorithm fixes it surfaced
   went into the actual codebase.
+- 2026-08-08 — Replaced the proxy points model above with REAL Kickbase
+  points, per the maintainer's objection that a player should only ever
+  score when they actually played (the proxy's team-level participation
+  bonus violated that) and a tip that BaseXI's own player pages have a
+  season switcher. Investigating that switcher led to discovering
+  `/api/modal/player/{id}?comp={1|2}` — the endpoint BaseXI's own frontend
+  uses to power its player-detail modal (found by reading their frontend JS
+  directly, no login needed, `isAuth: false` in the response). It returns
+  `matchHistory`/`matchHistoryPrev`: REAL per-matchday Kickbase points for
+  the current and previous season, with `points: null` (not 0) for
+  matchdays not played — exactly the distinction the maintainer asked for.
+  Added as `BaseXiClient.getPlayerDetail()` (see the dedicated commit) and
+  re-ran the last-3-matchday backtest with it instead of the proxy model:
+  team-level signals (form, goal stats, home/away split, congestion) still
+  come from OpenLigaDB as before; only player-level scoring changed, now
+  keyed to BaseXI's own player id (no more fuzzy name-matching against
+  OpenLigaDB goal-scorer names, which the proxy version needed and could
+  get wrong).
+  Real total: 3236 points across the 3 matchdays (928 + 1204 + 1104) - on a
+  completely different, realistic scale from the proxy's 0-15/matchday
+  guess (real Kickbase points run into the hundreds per matchday). Notably,
+  matchday 32's predicted-vs-actual total (929.4 predicted vs 928 actual)
+  landed almost exactly on target in aggregate, even though individual
+  players still missed high (Serge Gnabry: predicted 104.6, actual 0) and
+  low (Kim Minjae: predicted 74.5, actual 166) — real variance a single
+  season-average-based score can't capture, not a bug.
+  Confirms this project's now-recurring lesson: real data beats proxies,
+  and outside correction (the user's, twice now on this thread alone) finds
+  real capabilities and real bugs that internal review didn't.
