@@ -208,10 +208,13 @@ export function registerForecastMatchdayValueLineupTool(server: McpServer, forec
         "away gets an away boost, not a home one) into a value-lineup shortlist: a suggested " +
         "value-XI, bench options, and a top-N-per-position list, each with a fully " +
         "disclosed rationale (see @kickbase-ai-manager/predictions for the exact scoring " +
-        "formula and its weights). This is a ranking aid, not a points prediction or a " +
-        "guaranteed lineup - it has no knowledge of your actual squad, budget, or confirmed " +
-        "starting lineups (the output reminds you to search LigaInsider for that). Before the " +
-        "season's first matchday, every player falls back to last season's averages and the " +
+        "formula and its weights). Flags starters with a non-default BaseXI status (possible " +
+        "injury/suspension/doubt) and fixture-congestion risk (Bundesliga + cup double/triple " +
+        "gameweeks) separately, since playing-time certainty matters more than any stat - a " +
+        "brilliant player on the bench scores zero. This is a ranking aid, not a points " +
+        "prediction or a guaranteed lineup - it has no knowledge of your actual squad, budget, " +
+        "or confirmed starting lineups (the output reminds you to search LigaInsider for that). " +
+        "Before the season's first matchday, every player falls back to last season's averages and the " +
         "output says so explicitly. Only available because you explicitly enabled BaseXI " +
         "(ENABLE_BASEXI=true).",
       inputSchema: { topPerPosition: z.number().int().positive().max(20).optional() },

@@ -97,4 +97,18 @@ describe("computePlayerValueScore", () => {
     expect(withHint.compositeScore).toBe(withoutHint.compositeScore);
     expect(withHint.differentiation?.label).toBe("template"); // 68M vs 20M average
   });
+
+  it("passes through BaseXI status and a congestion note without scoring them", () => {
+    const withoutSignals = computePlayerValueScore(input());
+    const withSignals = computePlayerValueScore(
+      input({ baseXiStatus: 1, baseXiStatusText: "Angeschlagen", congestionNote: "Double fixture burden." }),
+    );
+
+    expect(withSignals.compositeScore).toBe(withoutSignals.compositeScore);
+    expect(withSignals.baseXiStatus).toBe(1);
+    expect(withSignals.baseXiStatusText).toBe("Angeschlagen");
+    expect(withSignals.congestionNote).toBe("Double fixture burden.");
+    expect(withoutSignals.baseXiStatus).toBeUndefined();
+    expect(withoutSignals.congestionNote).toBeUndefined();
+  });
 });

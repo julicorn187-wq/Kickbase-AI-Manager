@@ -145,6 +145,54 @@ describe("ForecastService", () => {
     expect(text).toMatch(/winner-take-all/i);
   });
 
+  it("flags a starter with a non-default BaseXI status", async () => {
+    const service = new ForecastService(
+      mockBaseXiClient([player({ status: 1, statusText: "Angeschlagen" })]),
+      mockOpenLigaClient(),
+    );
+
+    const text = await service.getMatchdayValueLineup();
+
+    expect(text).toContain("STARTERS WITH A NON-DEFAULT BASEXI STATUS");
+    expect(text).toContain("Angeschlagen");
+  });
+
+  it("does not flag a starter with the default status", async () => {
+    const service = new ForecastService(mockBaseXiClient([player({ status: 0 })]), mockOpenLigaClient());
+
+    const text = await service.getMatchdayValueLineup();
+
+    expect(text).not.toContain("STARTERS WITH A NON-DEFAULT BASEXI STATUS");
+  });
+
+  it("flags a starter facing fixture congestion from combined Bundesliga + cup fixtures", async () => {
+    const bundesligaLeg = bundesligaMatch({ matchDateTimeUTC: "2026-09-10T13:30:00Z" });
+    const cupLeg = bundesligaMatch({
+      matchID: 999_999,
+      leagueShortcut: "dfb",
+      matchDateTimeUTC: "2026-09-13T19:00:00Z",
+      team1: team(40, "FC Bayern München", "Bayern"),
+      team2: team(777, "Regional Cup Team", "RCT"),
+    });
+    const openLigaClient = {
+      getSeasonMatches: vi
+        .fn()
+        .mockImplementation((shortcut: string) =>
+          Promise.resolve(shortcut === "bl1" ? [bundesligaLeg] : shortcut === "dfb" ? [cupLeg] : []),
+        ),
+      getAvailableLeagues: vi
+        .fn()
+        .mockResolvedValue([{ leagueShortcut: "dfb", leagueName: "DFB-Pokal 2026/2027", leagueSeason: 2026 }]),
+    } as unknown as OpenLigaDbClient;
+
+    const service = new ForecastService(mockBaseXiClient([player()]), openLigaClient);
+
+    const text = await service.getMatchdayValueLineup();
+
+    expect(text).toContain("Starters facing fixture congestion");
+    expect(text).toContain("Double fixture burden");
+  });
+
   describe("forecast logging", () => {
     let logDir: string;
 

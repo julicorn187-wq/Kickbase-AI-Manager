@@ -62,6 +62,9 @@ export function computePlayerValueScore(input: PlayerScoreInput): PlayerValueSco
     ...(input.baseXiNextMatchDifficulty !== undefined && {
       baseXiNextMatchDifficulty: input.baseXiNextMatchDifficulty,
     }),
+    ...(input.baseXiStatus !== undefined && { baseXiStatus: input.baseXiStatus }),
+    ...(input.baseXiStatusText !== undefined && { baseXiStatusText: input.baseXiStatusText }),
+    ...(input.congestionNote !== undefined && { congestionNote: input.congestionNote }),
     ...(differentiation !== undefined && { differentiation }),
   };
 }

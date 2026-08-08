@@ -1,10 +1,12 @@
 import type { BaseXiClient, BaseXiPlayer } from "@kickbase-ai-manager/basexi";
 import type { OpenLigaDbClient } from "@kickbase-ai-manager/openligadb";
 import {
+  computeFixtureCongestion,
   computeFormCurve,
   computeGoalStats,
   computeHomeAwaySplit,
   getCurrentBundesligaSeasonYear,
+  type CongestionWindow,
 } from "@kickbase-ai-manager/fixtures";
 import {
   buildValueLineup,
@@ -20,7 +22,7 @@ import {
 } from "@kickbase-ai-manager/predictions";
 import { buildLigaInsiderSearchQuery, createLogger, type Logger } from "@kickbase-ai-manager/shared";
 import { buildForecastSnapshot, resolveMatchdayNumber, reviewForecastAccuracy, saveForecastSnapshot } from "./forecast-log.js";
-import { collectSeasonTeams, toTeamMatchInputs } from "./matchup.service.js";
+import { collectSeasonTeams, fetchSeasonCupMatches, toTeamMatchInputs } from "./matchup.service.js";
 
 const DEFAULT_LOG_DIR = "./.kickbase-forecast-log";
 
@@ -103,19 +105,29 @@ export class ForecastService {
 
   private async buildTeamDataMaps(): Promise<TeamDataMaps> {
     const season = getCurrentBundesligaSeasonYear();
-    const matches = await this.openLigaClient.getSeasonMatches("bl1", season);
-    const teams = collectSeasonTeams(matches);
+    const bundesligaMatches = await this.openLigaClient.getSeasonMatches("bl1", season);
+    const teams = collectSeasonTeams(bundesligaMatches);
+    // Fetched ONCE for the whole league, not per team — see fetchSeasonCupMatches's doc comment.
+    const { matchesByCompetition } = await fetchSeasonCupMatches(this.openLigaClient, season);
 
     const strengthByName = new Map<string, TeamStrengthInput>();
     const homeAwaySplitByName = new Map<string, TeamHomeAwaySplit>();
+    const nearestCongestionByName = new Map<string, CongestionWindow>();
 
     for (const team of teams) {
       // Full season, unsliced — computeFormCurve/computeGoalStats slice to the last 5 themselves for
       // recent-form purposes, while computeHomeAwaySplit deliberately looks at the whole season.
-      const inputs = toTeamMatchInputs(matches, team, "Bundesliga");
-      const form = computeFormCurve(inputs, 5);
-      const goals = computeGoalStats(inputs, 5);
-      const split = computeHomeAwaySplit(inputs);
+      const bundesligaInputs = toTeamMatchInputs(bundesligaMatches, team, "Bundesliga");
+      const form = computeFormCurve(bundesligaInputs, 5);
+      const goals = computeGoalStats(bundesligaInputs, 5);
+      const split = computeHomeAwaySplit(bundesligaInputs);
+
+      // Congestion needs cup fixtures too (that's where "double gameweeks" mostly come from) —
+      // Bundesliga-only wouldn't show a Champions-League-plus-Bundesliga midweek pile-up.
+      const cupInputs = [...matchesByCompetition.entries()].flatMap(([label, matches]) =>
+        toTeamMatchInputs(matches, team, label),
+      );
+      const congestion = computeFixtureCongestion([...bundesligaInputs, ...cupInputs], 7);
 
       const key = normalizeTeamName(team.teamName);
       strengthByName.set(key, {
@@ -129,9 +141,10 @@ export class ForecastService {
         cleanSheets: goals.cleanSheets,
       });
       homeAwaySplitByName.set(key, { teamName: team.teamName, ...split });
+      if (congestion[0]) nearestCongestionByName.set(key, congestion[0]);
     }
 
-    return { strengthByName, homeAwaySplitByName };
+    return { strengthByName, homeAwaySplitByName, nearestCongestionByName };
   }
 
   private scorePlayer(
@@ -152,6 +165,7 @@ export class ForecastService {
     const impliedProbabilities = oddsString ? parseImpliedProbabilities(oddsString) : undefined;
     const positionBaseline = positionBaselines.get(player.position);
     const positionAverageMarketValue = positionAverageMarketValues.get(player.position);
+    const nearestCongestion = teamData.nearestCongestionByName.get(ownTeamKey);
 
     const input: PlayerScoreInput = {
       id: player.id,
@@ -171,6 +185,10 @@ export class ForecastService {
       ...(impliedProbabilities && { impliedProbabilities }),
       ...(player.momentum && { baseXiMomentum: player.momentum }),
       ...(player.next_match && { baseXiNextMatchDifficulty: player.next_match.difficulty }),
+      // status 0 = default/no issue (same convention as packages/analytics' squad valuation).
+      ...(player.status !== 0 && { baseXiStatus: player.status }),
+      ...(player.status !== 0 && player.statusText !== null && { baseXiStatusText: player.statusText }),
+      ...(nearestCongestion && { congestionNote: formatCongestionNote(nearestCongestion) }),
     };
 
     return computePlayerValueScore(input);
@@ -180,6 +198,16 @@ export class ForecastService {
 interface TeamDataMaps {
   strengthByName: Map<string, TeamStrengthInput>;
   homeAwaySplitByName: Map<string, TeamHomeAwaySplit>;
+  /** The soonest upcoming fixture-congestion window per team (Bundesliga + cup competitions), if any. */
+  nearestCongestionByName: Map<string, CongestionWindow>;
+}
+
+function formatCongestionNote(window: CongestionWindow): string {
+  return (
+    `${window.level === "triple-plus" ? "TRIPLE+" : "Double"} fixture burden: ${String(window.matchCount)} matches ` +
+    `(${window.competitions.join(", ")}) between ${window.windowStart.slice(0, 10)} and ${window.windowEnd.slice(0, 10)} ` +
+    "— increased rotation/injury risk."
+  );
 }
 
 interface RawAverage {
@@ -276,6 +304,26 @@ function formatReport(scored: PlayerValueScore[], lineup: ValueLineup, topPerPos
   lines.push(`Suggested value-XI (formation ${formatFormation(lineup.formation)}):`);
   lines.push(...lineup.starters.map((p) => `  ${formatPlayerLine(p)}`));
 
+  const flaggedStarters = lineup.starters.filter((p) => p.baseXiStatus !== undefined);
+  if (flaggedStarters.length > 0) {
+    lines.push(
+      "",
+      "STARTERS WITH A NON-DEFAULT BASEXI STATUS — verify before relying on them (a brilliant player " +
+        "on the bench scores zero; exact code meaning isn't confirmed, could be injury/suspension/doubt):",
+    );
+    lines.push(
+      ...flaggedStarters.map(
+        (p) => `  ${p.name}: status ${String(p.baseXiStatus)}${p.baseXiStatusText ? ` (${p.baseXiStatusText})` : ""}`,
+      ),
+    );
+  }
+
+  const congestedStarters = lineup.starters.filter((p) => p.congestionNote !== undefined);
+  if (congestedStarters.length > 0) {
+    lines.push("", "Starters facing fixture congestion (rotation/injury risk to their nailed-on status):");
+    lines.push(...congestedStarters.map((p) => `  ${p.name} (${p.teamName}): ${p.congestionNote ?? ""}`));
+  }
+
   if (lineup.concentrationWarnings.length > 0) {
     lines.push("", "Concentration risk (portfolio-style diversification check):");
     lines.push(...lineup.concentrationWarnings.map((w) => `  ${w}`));
@@ -318,9 +366,12 @@ function formatPlayerLine(player: PlayerValueScore): string {
   const shrunk =
     player.shrunkAveragePoints !== undefined ? `, shrunk: ${player.shrunkAveragePoints.toFixed(1)}` : "";
   const differentiation = player.differentiation ? `, ${player.differentiation.label}` : "";
+  const status = player.baseXiStatus !== undefined ? `, STATUS ${String(player.baseXiStatus)}` : "";
+  const congestion = player.congestionNote !== undefined ? ", congestion risk" : "";
   return (
     `${player.name} (${player.position}, ${player.teamName}) — score ${player.compositeScore.toFixed(1)} ` +
-    `[${player.averagePointsSource}, ${String(player.gamesConsidered)}g${shrunk}, adj ${formatPct(player.adjustmentPct)}${momentum}${difficulty}${differentiation}]`
+    `[${player.averagePointsSource}, ${String(player.gamesConsidered)}g${shrunk}, adj ${formatPct(player.adjustmentPct)}` +
+    `${momentum}${difficulty}${differentiation}${status}${congestion}]`
   );
 }
 

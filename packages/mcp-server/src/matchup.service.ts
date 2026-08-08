@@ -54,7 +54,10 @@ export class MatchupService {
     }
 
     const bundesligaInputs = toTeamMatchInputs(bundesligaMatches, team, "Bundesliga");
-    const { cupInputs, checkedCompetitions } = await this.fetchCupMatches(team, season);
+    const { matchesByCompetition, checkedCompetitions } = await fetchSeasonCupMatches(this.openLigaClient, season);
+    const cupInputs = [...matchesByCompetition.entries()].flatMap(([label, matches]) =>
+      toTeamMatchInputs(matches, team, label),
+    );
     const allInputs = [...bundesligaInputs, ...cupInputs];
 
     const form = computeFormCurve(bundesligaInputs, 5);
@@ -62,47 +65,6 @@ export class MatchupService {
     const congestion = computeFixtureCongestion(allInputs, 7);
 
     return this.formatReport(team.teamName, form, nextMatches, congestion, checkedCompetitions);
-  }
-
-  private async fetchCupMatches(
-    team: OpenLigaTeam,
-    season: number,
-  ): Promise<{ cupInputs: TeamMatchInput[]; checkedCompetitions: string[] }> {
-    const cupInputs: TeamMatchInput[] = [];
-    const checkedCompetitions: string[] = [];
-
-    let leagues;
-    try {
-      leagues = await this.openLigaClient.getAvailableLeagues();
-    } catch {
-      return { cupInputs, checkedCompetitions };
-    }
-
-    for (const cup of CUP_COMPETITIONS) {
-      const candidates = leagues.filter((l) => l.leagueSeason === season && cup.namePattern.test(l.leagueName));
-      if (candidates.length === 0) continue;
-
-      const seenMatchIds = new Set<number>();
-      let foundAny = false;
-      for (const candidate of candidates) {
-        try {
-          const matches = await this.openLigaClient.getSeasonMatches(candidate.leagueShortcut, season);
-          for (const match of matches) {
-            if (seenMatchIds.has(match.matchID)) continue;
-            seenMatchIds.add(match.matchID);
-            if (matchesTeam(match.team1, team) || matchesTeam(match.team2, team)) {
-              cupInputs.push(...toTeamMatchInputs([match], team, cup.label));
-              foundAny = true;
-            }
-          }
-        } catch {
-          // Best-effort: one unreachable cup competition shouldn't fail the whole analysis.
-        }
-      }
-      if (foundAny) checkedCompetitions.push(cup.label);
-    }
-
-    return { cupInputs, checkedCompetitions };
   }
 
   private formatReport(
@@ -159,6 +121,57 @@ export class MatchupService {
 
     return lines.join("\n");
   }
+}
+
+export interface CupMatchesResult {
+  /** Cup competition label -> every match in it this season (all teams, not filtered to one). */
+  matchesByCompetition: Map<string, OpenLigaMatch[]>;
+  checkedCompetitions: string[];
+}
+
+/**
+ * Fetches every CUP_COMPETITIONS match ONCE for the whole season — not
+ * per-team — so a caller that needs this for many teams (e.g. ForecastService
+ * scoring the whole player pool) doesn't refetch the same competition
+ * repeatedly. getTeamMatchupAnalysis and ForecastService both filter the
+ * shared result down to one team's matches afterward via toTeamMatchInputs.
+ */
+export async function fetchSeasonCupMatches(openLigaClient: OpenLigaDbClient, season: number): Promise<CupMatchesResult> {
+  const matchesByCompetition = new Map<string, OpenLigaMatch[]>();
+  const checkedCompetitions: string[] = [];
+
+  let leagues;
+  try {
+    leagues = await openLigaClient.getAvailableLeagues();
+  } catch {
+    return { matchesByCompetition, checkedCompetitions };
+  }
+
+  for (const cup of CUP_COMPETITIONS) {
+    const candidates = leagues.filter((l) => l.leagueSeason === season && cup.namePattern.test(l.leagueName));
+    if (candidates.length === 0) continue;
+
+    const seenMatchIds = new Set<number>();
+    const matches: OpenLigaMatch[] = [];
+    for (const candidate of candidates) {
+      try {
+        const candidateMatches = await openLigaClient.getSeasonMatches(candidate.leagueShortcut, season);
+        for (const match of candidateMatches) {
+          if (seenMatchIds.has(match.matchID)) continue;
+          seenMatchIds.add(match.matchID);
+          matches.push(match);
+        }
+      } catch {
+        // Best-effort: one unreachable cup competition shouldn't fail the whole analysis.
+      }
+    }
+    if (matches.length > 0) {
+      matchesByCompetition.set(cup.label, matches);
+      checkedCompetitions.push(cup.label);
+    }
+  }
+
+  return { matchesByCompetition, checkedCompetitions };
 }
 
 /** All unique teams appearing in a season's match list (each team plays both home and away, so team1+team2 covers everyone). */

@@ -321,3 +321,41 @@ mid-flight.
     silent drift from an opaque self-tuning loop, which would be its own
     kind of invented precision given how few matchdays a season has.
   Verified clean: typecheck, lint, 187/187 tests, and build all pass.
+- 2026-08-08 — Reviewed a list of Kickbase lineup indicators the maintainer
+  got from another AI (playing-time certainty, injury/suspension status,
+  points consistency, opponent strength, clean-sheet chance, xG, odds
+  markets, Elo, fixture congestion) and judged each against what this
+  project can honestly build:
+  - **Wired in (real data, already fetched, just wasn't connected):**
+    BaseXI's `status`/`statusText` now flow through to the forecast —
+    starters with a non-default status get an explicit "STARTERS WITH A
+    NON-DEFAULT BASEXI STATUS" section, since playing-time certainty is
+    the single highest-leverage factor (a bench player scores zero
+    regardless of stats). Fixture congestion (`computeFixtureCongestion`,
+    already built for `analyze-kickbase-team-matchup`, was never wired
+    into the forecast) is now computed across Bundesliga + cup
+    competitions and flagged per starter.
+    `matchup.service.ts`'s per-team cup-fetching was refactored into an
+    exported `fetchSeasonCupMatches` (fetches each cup competition ONCE
+    for the whole league, not once per team) so ForecastService could
+    reuse it without an O(teams × cups) blowup in OpenLigaDB calls.
+  - **Correctly identified but not real Kickbase mechanics (unverified,
+    flagged to the maintainer rather than built):** a "captain" pick that
+    doubles points isn't mentioned anywhere in
+    `docs/kickbase-mechanics.md`'s official Help-Center research — likely
+    confused with FPL. Not implemented until confirmed.
+  - **Genuine data gaps, not built because they'd require inventing data
+    or a new source this project can't respect (scraping/ToS) or hasn't
+    verified (paid API):** xG/xGA (no free/documented source found yet),
+    over/under and Asian-handicap odds, team-clean-sheet and anytime-
+    scorer markets (BaseXI only exposes 1X2 odds), and Elo/power ratings
+    (a real, buildable idea — cross-season OpenLigaDB history — but a
+    separate, larger effort, not done opportunistically here).
+  - **Deferred as low-value right now:** exponential recency-weighting of
+    the last 5 matches (marginal difference at n=5, revisit if it matters
+    once real in-season data exists) and a real player-level consistency
+    metric computed from this project's own forecast-log history (only
+    meaningful once several matchdays have actually been evaluated —
+    the mechanism from the entry above already collects exactly the data
+    this would need).
+  Verified clean: typecheck, lint, 191/191 tests, and build all pass.

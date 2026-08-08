@@ -105,6 +105,23 @@ export interface PlayerScoreInput {
    */
   baseXiMomentum?: string;
   baseXiNextMatchDifficulty?: number;
+  /**
+   * BaseXI's raw status code, surfaced ONLY when non-zero (0 = default/no
+   * issue) — same caveat as elsewhere in this project: exact meaning per
+   * code isn't confirmed, so this is shown as-is, not interpreted as
+   * "injured"/"suspended". Never scored: a numeric code with unconfirmed
+   * meaning can't responsibly be turned into a weighted penalty.
+   */
+  baseXiStatus?: number;
+  baseXiStatusText?: string;
+  /**
+   * A pre-formatted note when the player's club has an upcoming fixture
+   * congestion window (2+ matches within 7 days across competitions) — see
+   * @kickbase-ai-manager/fixtures' computeFixtureCongestion. Informational
+   * only: congestion raises rotation/injury risk but doesn't by itself mean
+   * a specific player will be rested, so it isn't folded into compositeScore.
+   */
+  congestionNote?: string;
 }
 
 export interface PlayerValueScore {
@@ -135,6 +152,9 @@ export interface PlayerValueScore {
   rationale: string[];
   baseXiMomentum?: string;
   baseXiNextMatchDifficulty?: number;
+  baseXiStatus?: number;
+  baseXiStatusText?: string;
+  congestionNote?: string;
   /** Present only when positionAverageMarketValue was supplied — see differentiation.ts. Informational only, not scored. */
   differentiation?: DifferentiationHint;
 }
