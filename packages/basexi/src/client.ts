@@ -14,7 +14,13 @@
  */
 import { createLogger, type Logger } from "@kickbase-ai-manager/shared";
 import { BaseXiApiError, BaseXiNetworkError, BaseXiParseError } from "./errors.js";
-import type { BaseXiPlayer } from "./types.js";
+import type { BaseXiPlayer, BaseXiPlayerDetail } from "./types.js";
+
+interface BaseXiModalResponse {
+  success: boolean;
+  data?: BaseXiPlayerDetail;
+  error?: string;
+}
 
 export const BASEXI_API_BASE = "https://www.base-xi.de";
 
@@ -121,5 +127,22 @@ export class BaseXiClient {
     const players = await this.getAllPlayers();
     const needle = name.toLowerCase().trim();
     return players.find((p) => p.name.toLowerCase().includes(needle));
+  }
+
+  /**
+   * Per-player detail with REAL per-matchday point history for the current
+   * and previous season — discovered via the site's own player-detail modal
+   * (not documented anywhere; the endpoint and shape were found by reading
+   * base-xi.de's own frontend JS, see PLAN.md). comp selects competition:
+   * 1 = Bundesliga, 2 = 2. Bundesliga.
+   */
+  async getPlayerDetail(playerId: string, comp: 1 | 2 = 1): Promise<BaseXiPlayerDetail> {
+    this.logger.info("fetching basexi player detail", { playerId, comp });
+    const endpoint = `/api/modal/player/${playerId}?comp=${String(comp)}`;
+    const response = await this.makeRequest<BaseXiModalResponse>(endpoint);
+    if (!response.success || !response.data) {
+      throw new BaseXiApiError(`BaseXI modal API reported failure: ${response.error ?? "unknown error"}`, endpoint);
+    }
+    return response.data;
   }
 }

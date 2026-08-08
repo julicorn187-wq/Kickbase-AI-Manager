@@ -63,3 +63,56 @@ export interface BaseXiPlayer {
   match_data: BaseXiMatchData | null;
   next_match: BaseXiNextMatch | null;
 }
+
+/**
+ * One matchday's real result for a player, from the per-player detail
+ * endpoint's matchHistory/matchHistoryPrev arrays. points is null (not 0)
+ * when the player didn't play that matchday — never invent a participation
+ * value; a null here means "no data", not "zero points".
+ */
+export interface BaseXiMatchdayEntry {
+  day: number;
+  oppId: number;
+  points: number | null;
+  result: "win" | "draw" | "loss" | null;
+}
+
+/**
+ * Richer next-fixture preview than BaseXiNextMatch above — from the
+ * per-player detail endpoint, which (unlike the /api/players list endpoint)
+ * has been observed to carry real posted odds even when the list endpoint
+ * still shows the "- | - | -" placeholder for the same player.
+ */
+export interface BaseXiPlayerDetailNextMatch {
+  day: number;
+  home: boolean;
+  oppId: number;
+  /** BaseXI's own difficulty rating — same undocumented-scale caveat as BaseXiNextMatch.difficulty. */
+  difficulty: number;
+  odds: string;
+  dateStr: string;
+}
+
+/**
+ * Per-player detail from BaseXI's player-detail modal
+ * (/api/modal/player/{id}?comp={1|2}) — discovered via the site's own
+ * frontend JS, not documented anywhere. Richer than BaseXiPlayer: carries
+ * REAL per-matchday point history for both the current and previous season
+ * (matchHistory/matchHistoryPrev), not just a season-aggregate average.
+ * Only the fields this package actually uses are modeled; the real response
+ * has more (market-value curve, daily changes, fair value, etc.).
+ */
+export interface BaseXiPlayerDetail {
+  id: string;
+  name: string;
+  position: string;
+  teamName: string;
+  marketValue: number;
+  status: number;
+  /** This season's per-matchday results — points are null until each matchday is actually played. */
+  matchHistory: BaseXiMatchdayEntry[];
+  /** LAST season's per-matchday results — real historical Kickbase points, not a proxy or estimate. */
+  matchHistoryPrev: BaseXiMatchdayEntry[];
+  seasonLabels: { current: string; prev: string };
+  nextMatch: BaseXiPlayerDetailNextMatch | null;
+}

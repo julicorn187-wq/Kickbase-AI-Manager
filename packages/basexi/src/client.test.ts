@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { BaseXiClient } from "./client.js";
-import { BaseXiNetworkError, BaseXiParseError } from "./errors.js";
-import type { BaseXiPlayer } from "./types.js";
+import { BaseXiApiError, BaseXiNetworkError, BaseXiParseError } from "./errors.js";
+import type { BaseXiPlayer, BaseXiPlayerDetail } from "./types.js";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -74,5 +74,62 @@ describe("BaseXiClient", () => {
     });
 
     await expect(client(fetchMock as unknown as typeof fetch).getAllPlayers()).rejects.toThrow(BaseXiNetworkError);
+  });
+
+  describe("getPlayerDetail", () => {
+    function detail(overrides: Partial<BaseXiPlayerDetail> = {}): BaseXiPlayerDetail {
+      return {
+        id: "7226",
+        name: "Harry Kane",
+        position: "Sturm",
+        teamName: "FC Bayern München",
+        marketValue: 68_379_524,
+        status: 0,
+        matchHistory: [{ day: 1, oppId: 9, points: null, result: null }],
+        matchHistoryPrev: [
+          { day: 1, oppId: 43, points: 427, result: "win" },
+          { day: 2, oppId: 13, points: null, result: null },
+        ],
+        seasonLabels: { current: "2026/27", prev: "2025/26" },
+        nextMatch: { day: 1, home: true, oppId: 9, difficulty: 1, odds: "1.27 | 7.0 | 7.5", dateStr: "28.08. 19:30" },
+        ...overrides,
+      };
+    }
+
+    it("fetches the modal endpoint with the given player id and competition", async () => {
+      const fetchMock = vi.fn((url: string) => {
+        expect(url).toBe("https://www.base-xi.de/api/modal/player/7226?comp=1");
+        return jsonResponse({ success: true, data: detail() });
+      });
+
+      const result = await client(fetchMock as unknown as typeof fetch).getPlayerDetail("7226");
+      expect(result.name).toBe("Harry Kane");
+      expect(result.matchHistoryPrev[0]).toEqual({ day: 1, oppId: 43, points: 427, result: "win" });
+    });
+
+    it("passes comp=2 through to the endpoint", async () => {
+      const fetchMock = vi.fn((url: string) => {
+        expect(url).toBe("https://www.base-xi.de/api/modal/player/99?comp=2");
+        return jsonResponse({ success: true, data: detail({ id: "99" }) });
+      });
+
+      await client(fetchMock as unknown as typeof fetch).getPlayerDetail("99", 2);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("preserves null points for matchdays the player didn't play, rather than inventing zero", async () => {
+      const fetchMock = vi.fn(() => jsonResponse({ success: true, data: detail() }));
+
+      const result = await client(fetchMock as unknown as typeof fetch).getPlayerDetail("7226");
+      expect(result.matchHistoryPrev[1]?.points).toBeNull();
+    });
+
+    it("throws BaseXiApiError when the API reports success: false", async () => {
+      const fetchMock = vi.fn(() => jsonResponse({ success: false, error: "player not found" }));
+
+      await expect(client(fetchMock as unknown as typeof fetch).getPlayerDetail("nonexistent")).rejects.toThrow(
+        BaseXiApiError,
+      );
+    });
   });
 });
