@@ -1,3 +1,4 @@
+import { computeConcentrationWarnings } from "./concentration.js";
 import { DEFAULT_FORMATION, type LineupFormation } from "./lineup-builder.js";
 import type { KickbasePosition, PlayerValueScore } from "./types.js";
 
@@ -9,6 +10,13 @@ export interface BudgetLineup {
   remainingBudget: number;
   /** Formation slots that couldn't be filled within budget from the given pool — one entry per unfilled slot. */
   unfilledSlots: KickbasePosition[];
+  /**
+   * One entry per club with too many starters — see computeConcentrationWarnings.
+   * A real backtest (see PLAN.md) showed this builder piling most of a team's
+   * starting XI onto a single club whose players all shared a favorable
+   * matchup signal; this warning surfaces that instead of hiding it.
+   */
+  concentrationWarnings: string[];
 }
 
 /**
@@ -83,6 +91,7 @@ export function buildBudgetConstrainedLineup(
     budget,
     remainingBudget: budget - totalCost,
     unfilledSlots,
+    concentrationWarnings: computeConcentrationWarnings(starters),
   };
 }
 

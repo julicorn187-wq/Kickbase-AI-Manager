@@ -127,4 +127,23 @@ describe("buildBudgetConstrainedLineup", () => {
     const uniqueIds = new Set(lineup.starters.map((p) => p.id));
     expect(uniqueIds.size).toBe(lineup.starters.length);
   });
+
+  it("flags concentration risk when the best-affordable picks pile onto one club", () => {
+    const players = [
+      player({ id: "gk", position: "Torwart", teamName: "FC Bayern München", compositeScore: 10 }),
+      player({ id: "def-1", position: "Abwehr", teamName: "FC Bayern München", compositeScore: 10 }),
+      player({ id: "def-2", position: "Abwehr", teamName: "FC Bayern München", compositeScore: 10 }),
+      player({ id: "def-3", position: "Abwehr", teamName: "FC Bayern München", compositeScore: 10 }),
+    ];
+
+    const lineup = buildBudgetConstrainedLineup(players, 150_000_000, {
+      Torwart: 1,
+      Abwehr: 3,
+      Mittelfeld: 0,
+      Sturm: 0,
+    });
+
+    expect(lineup.concentrationWarnings).toHaveLength(1);
+    expect(lineup.concentrationWarnings[0]).toContain("4 starters from FC Bayern München");
+  });
 });

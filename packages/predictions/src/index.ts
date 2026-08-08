@@ -5,6 +5,7 @@ export { computeDifferentiationHint, type DifferentiationHint, type Differentiat
 export { computePlayerValueScore } from "./player-score.js";
 export { buildValueLineup, DEFAULT_FORMATION, type LineupFormation, type ValueLineup } from "./lineup-builder.js";
 export { buildBudgetConstrainedLineup, type BudgetLineup } from "./budget-lineup-builder.js";
+export { computeConcentrationWarnings } from "./concentration.js";
 export type {
   ImpliedProbabilities,
   KickbasePosition,
